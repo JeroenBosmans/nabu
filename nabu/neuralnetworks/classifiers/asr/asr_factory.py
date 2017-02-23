@@ -1,7 +1,7 @@
 '''@file asr_factory
 contains the asr factory'''
 
-from . import dblstm, dnn, wavenet, las
+from . import dblstm, dnn, wavenet, las, unidir_las
 
 def factory(conf, output_dim):
     '''create an asr classifier
@@ -21,5 +21,7 @@ def factory(conf, output_dim):
         return wavenet.Wavenet(conf, output_dim)
     elif conf['asr'] == 'las':
         return las.LAS(conf, output_dim)
+    elif conf['asr'] == 'unidir_las':
+        return unidir_las.Unidir_LAS(conf, output_dim)
     else:
         raise Exception('undefined asr type: %s' % conf['asr'])

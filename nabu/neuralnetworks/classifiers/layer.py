@@ -4,6 +4,7 @@ Neural network layers '''
 import tensorflow as tf
 from tensorflow.python.ops import rnn_cell
 from tensorflow.python.ops.rnn import bidirectional_dynamic_rnn
+from tensorflow.python.ops.rnn import dynamic_rnn
 from nabu.neuralnetworks import ops
 
 class Linear(object):
@@ -57,6 +58,48 @@ class Linear(object):
 
         return outputs
 
+class LSTMLayer(object):
+    """This class allows enables lstm layer creation as well as computing
+       their output.
+    """
+    def __init__(self, num_units):
+        """
+        lstmLayer constructor
+
+        Args:
+            num_units: The number of units in the LSTM
+        """
+
+        self.num_units = num_units
+
+    def __call__(self, inputs, sequence_length, scope=None):
+        """
+        Create the variables and do the forward computation
+
+        Args:
+            inputs: the input to the layer as a
+                [batch_size, max_length, dim] tensor
+            sequence_length: the length of the input sequences
+            scope: The variable scope sets the namespace under which
+                      the variables created during this call will be stored.
+
+        Returns:
+            the output of the layer
+        """
+
+        with tf.variable_scope(scope or type(self).__name__):
+
+            #create the lstm cell that will be used for the forward and backward
+            #pass
+            lstm_cell = rnn_cell.BasicLSTMCell(self.num_units)
+
+            #do the forward computation
+            outputs, _ = dynamic_rnn(
+                lstm_cell, inputs, dtype=tf.float32,
+                sequence_length=sequence_length)
+
+            return outputs
+
 class BLSTMLayer(object):
     """This class allows enables blstm layer creation as well as computing
        their output. The output is found by linearly combining the forward
@@ -103,6 +146,46 @@ class BLSTMLayer(object):
             outputs = tf.concat(2, outputs_tupple)
 
             return outputs
+
+class PLSTMLayer(object):
+    ''' a pyramidal bidirectional LSTM layer'''
+
+    def __init__(self, num_units):
+        """
+        BlstmLayer constructor
+        Args:
+            num_units: The number of units in the LSTM
+            pyramidal: indicates if a pyramidal BLSTM is desired.
+        """
+
+        #create BLSTM layer
+        self.lstm = LSTMLayer(num_units)
+
+    def __call__(self, inputs, sequence_lengths, scope=None):
+        """
+        Create the variables and do the forward computation
+        Args:
+            inputs: A time minor tensor of shape [batch_size, time,
+                input_size],
+            sequence_lengths: the length of the input sequences
+            scope: The variable scope sets the namespace under which
+                the variables created during this call will be stored.
+        Returns:
+            the output of the layer, the concatenated outputs of the
+            forward and backward pass shape [batch_size, time/2, input_size*2].
+        """
+
+
+        with tf.variable_scope(scope or type(self).__name__):
+
+            #apply lstm layer
+            outputs = self.lstm(inputs, sequence_lengths)
+            stacked_outputs, output_seq_lengths = ops.pyramid_stack(
+                outputs,
+                sequence_lengths)
+
+
+        return stacked_outputs, output_seq_lengths
 
 class PBLSTMLayer(object):
     ''' a pyramidal bidirectional LSTM layer'''

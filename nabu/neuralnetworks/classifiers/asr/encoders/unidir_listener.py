@@ -4,8 +4,8 @@ contains the listener code'''
 import tensorflow as tf
 from nabu.neuralnetworks.classifiers import layer
 
-class Listener(object):
-    '''a listener object
+class Unidir_Listener(object):
+    '''a listener object that uses unidirectional LSTM's in stead of BLSTMs.
 
     transforms input features into a high level representation'''
 
@@ -24,11 +24,11 @@ class Listener(object):
         self.numlayers = numlayers
         self.dropout = dropout
 
-        #create the pblstm layer
-        self.pblstm = layer.PBLSTMLayer(numunits)
+        #create the plstm layer
+        self.plstm = layer.PLSTMLayer(numunits)
 
-        #create the blstm layer
-        self.blstm = layer.BLSTMLayer(numunits)
+        #create the lstm layer
+        self.lstm = layer.LSTMLayer(numunits)
 
         self.scope = tf.VariableScope(False, name or type(self).__name__)
 
@@ -43,7 +43,7 @@ class Listener(object):
             is_training: whether or not the network is in training mode
 
         Returns:
-            the output of the layer as a [bath_size, max_length, output_dim]
+            the output of the layer as a [batch_size, max_length, output_dim]
             tensor
         '''
 
@@ -52,13 +52,13 @@ class Listener(object):
             outputs = inputs
             output_seq_lengths = sequence_lengths
             for l in range(self.numlayers):
-                outputs, output_seq_lengths = self.pblstm(
+                outputs, output_seq_lengths = self.plstm(
                     outputs, output_seq_lengths, 'layer%d' % l)
 
                 if self.dropout < 1 and is_training:
                     outputs = tf.nn.dropout(outputs, self.dropout)
 
-            outputs = self.blstm(
+            outputs = self.lstm(
                 outputs, output_seq_lengths, 'layer%d' % self.numlayers)
 
             if self.dropout < 1 and is_training:
@@ -67,4 +67,3 @@ class Listener(object):
         self.scope.reuse_variables()
 
         return outputs
-
