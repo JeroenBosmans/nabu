@@ -7,7 +7,8 @@ import encoders
 import asr_decoders
 
 class Unidir_LAS(classifier.Classifier):
-    '''a listen attend and spell classifier with unidirectional LSTMs in its listener'''
+    '''a listen attend and spell classifier with unidirectional
+    LSTMs in its listener'''
     def __init__(self, conf, output_dim, name=None):
         '''LAS constructor
 

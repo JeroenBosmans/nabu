@@ -2,14 +2,15 @@
 contains the listener code'''
 
 import tensorflow as tf
+import encoder
 from nabu.neuralnetworks.classifiers import layer
 
-class Unidir_Listener(object):
+class Unidir_Listener(encoder.Encoder):
     '''a listener object that uses unidirectional LSTM's in stead of BLSTMs.
 
     transforms input features into a high level representation'''
 
-    def __init__(self, numlayers, numunits, dropout=1, name=None):
+    def __init__(self, conf, name=None):
         '''Listener constructor
 
         Args:
@@ -18,21 +19,15 @@ class Unidir_Listener(object):
             dropout: the dropout rate
             name: the name of the Listener'''
 
-
-
-        #save the parameters
-        self.numlayers = numlayers
-        self.dropout = dropout
-
         #create the plstm layer
-        self.plstm = layer.PLSTMLayer(numunits)
+        self.plstm = layer.PLSTMLayer(int(conf['listener_numunits']))
 
         #create the lstm layer
-        self.lstm = layer.LSTMLayer(numunits)
+        self.lstm = layer.LSTMLayer(int(conf['listener_numunits']))
 
-        self.scope = tf.VariableScope(False, name or type(self).__name__)
+        super(Unidir_Listener, self).__init__(conf, name)
 
-    def __call__(self, inputs, sequence_lengths, is_training=False):
+    def encode(self, inputs, sequence_lengths, is_training=False):
         '''
         Create the variables and do the forward computation
 
@@ -47,23 +42,22 @@ class Unidir_Listener(object):
             tensor
         '''
 
-        with tf.variable_scope(self.scope):
+        outputs = inputs
+        output_seq_lengths = sequence_lengths
+        for l in range(int(self.conf['listener_numlayers'])):
+            outputs, output_seq_lengths = self.plstm(
+                outputs, output_seq_lengths, 'layer%d' % l)
 
-            outputs = inputs
-            output_seq_lengths = sequence_lengths
-            for l in range(self.numlayers):
-                outputs, output_seq_lengths = self.plstm(
-                    outputs, output_seq_lengths, 'layer%d' % l)
+            if float(self.conf['listener_dropout']) < 1 and is_training:
+                outputs = tf.nn.dropout(
+                    outputs, float(self.conf['listener_dropout']))
 
-                if self.dropout < 1 and is_training:
-                    outputs = tf.nn.dropout(outputs, self.dropout)
+        outputs = self.lstm(
+            outputs, output_seq_lengths,
+            'layer%d' % int(self.conf['listener_numlayers']))
 
-            outputs = self.lstm(
-                outputs, output_seq_lengths, 'layer%d' % self.numlayers)
-
-            if self.dropout < 1 and is_training:
-                outputs = tf.nn.dropout(outputs, self.dropout)
-
-        self.scope.reuse_variables()
+        if float(self.conf['listener_dropout']) < 1 and is_training:
+            outputs = tf.nn.dropout(outputs,
+                                    float(self.conf['listener_dropout']))
 
         return outputs
