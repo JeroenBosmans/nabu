@@ -14,32 +14,35 @@ class CrossEntropyTrainer(trainer.Trainer):
         '''
         Compute the loss
 
-        Creates the operation to compute the cross-enthropy loss for every input
+        Creates the operation to compute the cross-entropy loss for every input
         frame (if you want to have a different loss function, overwrite this
         method)
 
         Args:
-            targets: a [batch_size, max_target_length] tensor containing the
-                targets
+            targets: a tupple of targets, the first one being a
+                [batch_size, max_target_length] tensor containing the real
+                targets, the second one being a [batch_size, max_audioseq_length]
+                tensor containing the audio samples or other extra information.
             logits: a [batch_size, max_logit_length, dim] tensor containing the
                 logits
             logit_seq_length: the length of all the logit sequences as a
                 [batch_size] vector
             target_seq_length: the length of all the target sequences as a
-                [batch_size] vector
+                tupple of two [batch_size] vectors, both for one of the elements
+                in the targets tupple
 
         Returns:
             a scalar value containing the loss
         '''
 
-        with tf.name_scope('cross_enthropy_loss'):
+        with tf.name_scope('cross_entropy_loss'):
             output_dim = int(logits.get_shape()[2])
 
-            #put all the tragets on top of each other
-            split_targets = tf.unpack(targets)
+            #put all the targets on top of each other
+            split_targets = tf.unpack(targets[0])
             for i, target in enumerate(split_targets):
                 #only use the real data
-                split_targets[i] = target[:target_seq_length[i]]
+                split_targets[i] = target[:target_seq_length[0][i]]
 
                 #append an end of sequence label
                 split_targets[i] = tf.concat(

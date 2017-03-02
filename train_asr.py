@@ -35,10 +35,24 @@ def train_asr(clusterfile,
     parsed_database_cfg.read(os.path.join(expdir, 'database.cfg'))
     database_cfg = dict(parsed_database_cfg.items('database'))
 
+    #Test if we are doing (partly) non-supervised training
+    if database_cfg['train_mode'] == 'supervised':
+        nonsupervised = False
+    elif database_cfg['train_mode'] == 'nonsupervised':
+        nonsupervised = True
+    else:
+        raise Exception('undefined training mode type: %s' % database_cfg['training_mode'])
+
     #read the features config file
     parsed_feat_cfg = configparser.ConfigParser()
     parsed_feat_cfg.read(os.path.join(expdir, 'model', 'features.cfg'))
     feat_cfg = dict(parsed_feat_cfg.items('features'))
+
+    #read the quantization config file if nonsupervised training
+    if nonsupervised:
+        parsed_quant_cfg = configparser.ConfigParser()
+        parsed_quant_cfg.read(os.path.join(expdir, 'model', 'quantization.cfg'))
+        quant_cfg = dict(parsed_quant_cfg.items('features'))
 
     #read the asr config file
     parsed_nnet_cfg = configparser.ConfigParser()
@@ -85,6 +99,20 @@ def train_asr(clusterfile,
         utt2spkfile=featdir + '/utt2spk',
         max_length=max_length)
 
+    # If nonsupervised, we also need a second feature reader for the audio samples
+    if(nonsupervised):
+
+        featdir = os.path.join(database_cfg['train_dir'], quant_cfg['name'])
+
+        with open(featdir + '/maxlength', 'r') as fid:
+            max_length_audio = int(fid.read())
+
+        audioreader = feature_reader.FeatureReader(
+            scpfile=featdir + '/feats_shuffled.scp',
+            cmvnfile=None,
+            utt2spkfile=None,
+            max_length=max_length_audio)
+
     #read the feature dimension
     with open(featdir + '/dim', 'r') as fid:
         input_dim = int(fid.read())
@@ -93,11 +121,19 @@ def train_asr(clusterfile,
     textfile = os.path.join(database_cfg['train_dir'], 'targets')
 
     #create a batch dispenser for the training data
-    dispenser = batchdispenser.AsrBatchDispenser(
-        feature_reader=featreader,
-        target_coder=coder,
-        size=int(trainer_cfg['batch_size']),
-        target_path=textfile)
+    if nonsupervised:
+        dispenser = batchdispenser.AsrNonSupervisedBatchDispenser(
+            feature_reader = featreader,
+            audio_reader=audioreader,
+            target_coder=coder,
+            size=int(trainer_cfg['batch_size']),
+            target_path=textfile)
+    else: #only supervised
+        dispenser = batchdispenser.AsrBatchDispenser(
+            feature_reader=featreader,
+            target_coder=coder,
+            size=int(trainer_cfg['batch_size']),
+            target_path=textfile)
 
     #create a reader for the validation data
     if 'dev_data' in database_cfg:

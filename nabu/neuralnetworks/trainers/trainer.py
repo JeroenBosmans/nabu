@@ -58,7 +58,7 @@ class Trainer(object):
         self.cluster = cluster
 
         #save the max lengths
-        self.max_target_length = dispenser.max_target_length
+        self.max_target_length1, self.max_target_length2 = dispenser.max_target_length
         self.max_input_length = dispenser.max_input_length
 
         #create the graph
@@ -99,11 +99,20 @@ class Trainer(object):
                            input_dim],
                     name='inputs')
 
-                #reference labels
-                self.targets = tf.placeholder(
+                #the first part of the tupple of targets
+                targets1 = tf.placeholder(
                     dtype=tf.int32,
-                    shape=[dispenser.size, self.max_target_length],
-                    name='targets')
+                    shape=[dispenser.size, self.max_target_length1],
+                    name='targets1')
+
+                #the second part of the tupple of targets
+                targets2 = tf.placeholder(
+                    dtype=tf.int32,
+                    shape=[dispenser.size, self.max_target_length2],
+                    name='targets2')
+
+                # the targets are passed together as a tupple
+                self.targets = (targets1, targets2)
 
                 #the length of all the input sequences
                 self.input_seq_length = tf.placeholder(
@@ -111,11 +120,20 @@ class Trainer(object):
                     shape=[dispenser.size],
                     name='input_seq_length')
 
-                #the length of all the output sequences
-                self.target_seq_length = tf.placeholder(
+                #the length of all the output sequences (first from target tupple)
+                target_seq_length1 = tf.placeholder(
                     dtype=tf.int32,
                     shape=[dispenser.size],
                     name='output_seq_length')
+
+                # the length of the sequences of the second element of target tupple
+                target_seq_length2 = tf.placeholder(
+                    dtype=tf.int32,
+                    shape=[dispenser.size],
+                    name='output_seq_length')
+
+                # last two placeholders are passed together as one argument
+                self.target_seq_length = (target_seq_length1, target_seq_length2)
 
                 #a placeholder to set the position
                 self.pos_in = tf.placeholder(
@@ -330,14 +348,17 @@ class Trainer(object):
         trainer
 
         Args:
-            targets: a [batch_size, max_target_length] tensor containing the
-                targets
+            targets: a tupple of targets, the first one being a
+                [batch_size, max_target_length] tensor containing the real
+                targets, the second one being a [batch_size, max_audioseq_length]
+                tensor containing the audio samples or other extra information.
             logits: a [batch_size, max_logit_length, dim] tensor containing the
                 logits
             logit_seq_length: the length of all the logit sequences as a
                 [batch_size] vector
             target_seq_length: the length of all the target sequences as a
-                [batch_size] vector
+                tupple of two [batch_size] vectors, both for one of the elements
+                in the targets tupple
 
         Returns:
             a scalar value containing the total loss
@@ -397,6 +418,7 @@ class Trainer(object):
                     sess.run(self.block_reader)
 
                     #read a batch of data
+                    #batch_target_tupples is a list of tupples
                     batch_data, batch_labels = self.dispenser.get_batch(
                         self.pos.eval(sess))
 
@@ -439,8 +461,8 @@ class Trainer(object):
             inputs: the inputs to the neural net, this should be a list
                 containing an NxF matrix for each utterance in the batch where
                 N is the number of frames in the utterance
-            targets: the targets for neural net, this should be
-                a list containing an N-dimensional vector for each utterance
+            targets: the targets for neural net, this should be a list of tuples,
+                each tuple containing two N-dimensional vectors for one utterance
             sess: the session
 
         Returns:
@@ -449,13 +471,19 @@ class Trainer(object):
                 - the learning rate used at this step
         '''
 
+        # go from a list of tupples to two seperate lists
+        targets1 = [t[0] for t in targets]
+        targets2 = [t[1] for t in targets]
+
         #get a list of sequence lengths
         input_seq_length = [i.shape[0] for i in inputs]
-        target_seq_length = [t.shape[0] for t in targets]
+        target_seq_length1 = [t1.shape[0] for t1 in targets1]
+        target_seq_length2 = [t2.shape[0] for t2 in targets2]
 
         #pad the inputs and targets untill the maximum lengths
         padded_inputs = np.array(pad(inputs, self.max_input_length))
-        padded_targets = np.array(pad(targets, self.max_target_length))
+        padded_targets1 = np.array(pad(targets1, self.max_target_length1))
+        padded_targets2 = np.array(pad(targets2, self.max_target_length2))
 
         #pylint: disable=E1101
         _, loss, lr = sess.run(
@@ -463,9 +491,11 @@ class Trainer(object):
                      self.loss,
                      self.learning_rate],
             feed_dict={self.inputs:padded_inputs,
-                       self.targets:padded_targets,
+                       self.targets[0]:padded_targets1,
+                       self.targets[1]:padded_targets2,
                        self.input_seq_length:input_seq_length,
-                       self.target_seq_length:target_seq_length})
+                       self.target_seq_length[0]:target_seq_length1,
+                       self.target_seq_length[1]:target_seq_length2})
 
         return loss, lr
 
@@ -506,7 +536,7 @@ def pad(inputs, length):
 
     Args:
         inputs: the inputs, this should be a list containing time major
-            tenors
+            tensors
         length: the length that will be used for padding the inputs
 
     Returns:

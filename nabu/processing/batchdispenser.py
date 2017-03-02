@@ -7,6 +7,7 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 import copy
 import text_reader
+import numpy as np
 
 ## Class that dispenses batches of data for mini-batch training
 class BatchDispenser(object):
@@ -37,7 +38,9 @@ class BatchDispenser(object):
         Returns:
             A pair containing:
                 - The features: a list of feature matrices
-                - The targets: a list of target vectors
+                - The targets: a list of target tupples(!), where the second
+                    element of each tupple can be used for varying reasons
+                        example: quantized audio samples
         '''
 
         #set up the data lists.
@@ -177,7 +180,7 @@ class AsrBatchDispenser(BatchDispenser):
             targets = None
             inputs = None
 
-        return inputs, targets
+        return inputs, (targets, np.zeros(1))
 
     @property
     def num_utt(self):
@@ -200,8 +203,9 @@ class AsrBatchDispenser(BatchDispenser):
     @property
     def max_target_length(self):
         '''the maximal length of the targets'''
-        return max([len(targets.split(' '))
+        part1 = max([len(targets.split(' '))
                     for targets in self.target_dict.values()])
+        return(part1,1)
 
 
     @property
@@ -265,7 +269,7 @@ class LmBatchDispenser(BatchDispenser):
 
         _, targets, _ = self.textreader.get_utt()
 
-        return targets, targets[:, 0]
+        return targets, (targets[:, 0],np.zeros(1))
 
     @property
     def num_labels(self):
@@ -283,7 +287,7 @@ class LmBatchDispenser(BatchDispenser):
     def max_target_length(self):
         '''the maximal length of the targets'''
 
-        return self.textreader.max_length
+        return (self.textreader.max_length,1)
 
     @property
     def num_utt(self):
@@ -302,3 +306,127 @@ class LmBatchDispenser(BatchDispenser):
         '''setter for the current position in the data'''
 
         self.textreader.pos = pos
+
+class AsrNonSupervisedBatchDispenser(BatchDispenser):
+    '''a batch dispenser, used for ASR training, when working with
+    (partly) non-supervised data'''
+
+    def __init__(self, feature_reader, audio_reader, target_coder, size, target_path):
+        '''
+        batchDispenser constructor
+
+        Args:
+            feature_reader: Kaldi ark-file feature reader instance.
+            audio_reader: Kaldi ark-file feature reader for the audio samples
+            target_coder: a TargetCoder object to encode and decode the target
+                sequences
+            size: Specifies how many utterances should be contained
+                  in each batch.
+            target_path: path to the file containing the targets
+        '''
+
+        #store the feature reader
+        self.feature_reader = feature_reader
+
+        #store the audio reader
+        self.audio_reader = audio_reader
+
+        #save the target coder
+        self.target_coder = target_coder
+
+        #get a dictionary connecting training utterances and targets.
+        self.target_dict = {}
+
+        with open(target_path, 'r') as fid:
+            for line in fid:
+                splitline = line.strip().split(' ')
+                self.target_dict[splitline[0]] = ' '.join(splitline[1:])
+
+        super(AsrNonSupervisedBatchDispenser, self).__init__(size)
+
+    def split(self, num_utt):
+        '''take a number of utterances from the batchdispenser to make a new one
+
+        Args:
+            num_utt: the number of utterances in the new batchdispenser
+
+        Returns:
+            a batch dispenser with the requested number of utterances'''
+
+        #create a copy of self
+        dispenser = copy.deepcopy(self)
+
+        #split of a part of the feature reader
+        dispenser.feature_reader = self.feature_reader.split(num_utt)
+
+        #get a list of keys in the featutre readers
+        dispenser_ids = dispenser.feature_reader.reader.scp_data.keys()
+        self_ids = self.feature_reader.reader.scp_data.keys()
+
+        #split the target dicts
+        dispenser.target_dict = {key: dispenser.target_dict[key] for key in
+                                 dispenser_ids}
+        self.target_dict = {key: self.target_dict[key] for key in self_ids}
+
+        return dispenser
+
+    def get_pair(self):
+        '''get the next input-target pair'''
+
+        utt_id, inputs, _ = self.feature_reader.get_utt()
+
+        if utt_id in self.target_dict:
+            text_targets = self.target_coder.encode(self.target_dict[utt_id])
+        else:
+            #Dit aanpassen wanneer we juist nog zeker willen werken met d
+            # data waar geen targets voor zijn!!!!!!
+            # Dan moeten we deze targets gewoon gelijk stellen aan 0 vector
+            print 'WARNING no targets for %s' % utt_id
+            targets = None
+            inputs = None
+
+        audio_samples = self.audio_reader.get_utt_with_id(utt_id)
+
+        # the targets should now be a pair of the real targets and the audio samples
+        targets = (text_targets, audio_samples)
+
+        return inputs, targets
+
+    @property
+    def num_utt(self):
+        '''The number of utterances in the given data'''
+
+        return len(self.target_dict)
+
+    @property
+    def num_labels(self):
+        '''the number of output labels'''
+
+        return self.target_coder.num_labels
+
+    @property
+    def max_input_length(self):
+        '''the maximal sequence length of the features'''
+
+        return self.feature_reader.max_length
+
+    @property
+    def max_target_length(self):
+        '''the maximal length of the targets'''
+        part1 = max([len(targets.split(' '))
+                    for targets in self.target_dict.values()])
+        part2 = self.audio_reader.max_length
+        return(part1, part2)
+
+
+    @property
+    def pos(self):
+        '''the current position in the data'''
+
+        return self.feature_reader.pos
+
+    @pos.setter
+    def pos(self, pos):
+        '''setter for the current position in the data'''
+
+        self.feature_reader.pos = pos

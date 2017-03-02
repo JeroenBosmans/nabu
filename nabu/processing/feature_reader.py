@@ -12,7 +12,8 @@ class FeatureReader(object):
 
     def __init__(self, scpfile, cmvnfile, utt2spkfile, max_length):
         '''
-        create a FeatureReader object
+        create a FeatureReader object. When the cmvnfile is None, we don't
+        want to do any normalization
 
         Args:
             scpfile: path to the features .scp file
@@ -26,14 +27,18 @@ class FeatureReader(object):
         #create the feature reader
         self.reader = ark.ArkReader(scpfile)
 
-        #create a reader for the cmvn statistics
-        self.reader_cmvn = ark.ArkReader(cmvnfile)
-
-        #save the utterance to speaker mapping
-        self.utt2spk = readfiles.read_utt2spk(utt2spkfile)
-
         #store the max length
         self.max_length = max_length
+
+        # some of the information is only needed when the cvmn file is not None
+        if(cmvnfile is not None):
+            #create a reader for the cmvn statistics
+            self.reader_cmvn = ark.ArkReader(cmvnfile)
+            #save the utterance to speaker mapping
+            self.utt2spk = readfiles.read_utt2spk(utt2spkfile)
+        else:
+            self.reader_cmvn = None
+            self.utt2spk = None
 
     def get_utt(self):
         '''
@@ -46,11 +51,32 @@ class FeatureReader(object):
         #read utterance
         (utt_id, utt_mat, looped) = self.reader.read_next_utt()
 
-        #apply cmvn
-        cmvn_stats = self.reader_cmvn.read_utt_data(self.utt2spk[utt_id])
-        utt_mat = apply_cmvn(utt_mat, cmvn_stats)
+        #apply cmvn if this is wanted
+        if(self.reader_cmvn is not None):
+            cmvn_stats = self.reader_cmvn.read_utt_data(self.utt2spk[utt_id])
+            utt_mat = apply_cmvn(utt_mat, cmvn_stats)
 
         return utt_id, utt_mat, looped
+
+    def get_utt_with_id(self, utt_id):
+        '''
+        read the features from the archive (and normalize and splice if cmvn present)
+        for the utterance that is specfied with a certain id
+
+        Args:
+            the id of the utterance
+        Returns:
+            the features of that certain utterance
+        '''
+        #read the utterance
+        utt_mat = self.reader.read_utt_data(utt_id)
+
+        #apply cmvn is this is wanted
+        if(self.reader_cmvn is not None):
+            cmvn_stats = self.reader_cmvn.read_utt_data(self.utt2spk[utt_id])
+            utt_mat = apply_cmvn(utt_mat, cmvn_stats)
+
+        return utt_mat
 
     def split(self, num_utt):
         '''take a number of utterances from the feature reader to make a new one

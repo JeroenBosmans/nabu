@@ -28,9 +28,11 @@ def main(_):
     database_cfg_file = 'config/asr_databases/TIMIT.conf'
     if FLAGS.type == 'asr':
         feat_cfg_file = 'config/features/fbank.cfg'
-    classifier_cfg_file = 'config/asr/Unidir_LAS.cfg'
+    classifier_cfg_file = 'config/asr/LAS.cfg'
     trainer_cfg_file = 'config/trainer/cross_entropytrainer.cfg'
     decoder_cfg_file = 'config/decoder/BeamSearchDecoder.cfg'
+    # NEW. Only necessary when doing partly non supervised training
+    quantization_cfg_file = 'config/features/quant_audio_samples.cfg'
 
     #read the computing config file
     parsed_computing_cfg = configparser.ConfigParser()
@@ -41,6 +43,11 @@ def main(_):
     parsed_trainer_cfg = configparser.ConfigParser()
     parsed_trainer_cfg.read(trainer_cfg_file)
     trainer_cfg = dict(parsed_trainer_cfg.items('trainer'))
+
+    #read the database config file
+    parsed_database_cfg = configparser.ConfigParser()
+    parsed_database_cfg.read(database_cfg_file)
+    database_cfg = dict(parsed_database_cfg.items('database'))
 
     if os.path.isdir(os.path.join(FLAGS.expdir, 'processes')):
         shutil.rmtree(os.path.join(FLAGS.expdir, 'processes'))
@@ -68,6 +75,11 @@ def main(_):
         if FLAGS.type == 'asr':
             shutil.copyfile(feat_cfg_file,
                             os.path.join(FLAGS.expdir, 'model', 'features.cfg'))
+
+            if database_cfg['train_mode'] == 'nonsupervised':
+                shutil.copyfile(quantization_cfg_file,
+                                os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
+
         shutil.copyfile(classifier_cfg_file,
                         os.path.join(FLAGS.expdir, 'model',
                                      '%s.cfg' % FLAGS.type))

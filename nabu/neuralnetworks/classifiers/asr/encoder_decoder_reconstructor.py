@@ -5,9 +5,10 @@ import tensorflow as tf
 from nabu.neuralnetworks.classifiers import classifier
 from encoders import encoder_factory
 from asr_decoders import asr_decoder_factory
+from reconstructors import reconstructor_factory
 
-class EncoderDecoder(classifier.Classifier):
-    '''a general class for an encoder decoder system'''
+class EncoderDecoderReconstructor(classifier.Classifier):
+    '''a general class for an encoder decoder reconstructor system'''
     def __init__(self, conf, output_dim, name=None):
         '''LAS constructor
 
@@ -17,13 +18,16 @@ class EncoderDecoder(classifier.Classifier):
             name: the classifier name
         '''
 
-        super(EncoderDecoder, self).__init__(conf, output_dim, name)
+        super(EncoderDecoderReconstructor, self).__init__(conf, output_dim, name)
 
         #create the listener
         self.encoder = encoder_factory.factory(conf)
 
         #create the speller
         self.decoder = asr_decoder_factory.factory(conf, self.output_dim)
+
+        #create the reconstructors
+        self.reconstructor = reconstructor_factory(conf)
 
     def _get_outputs(self, inputs, input_seq_length, targets=None,
                      target_seq_length=None, is_training=False):
@@ -64,11 +68,11 @@ class EncoderDecoder(classifier.Classifier):
 
         #prepend a sequence border label to the targets to get the encoder
         #inputs, the label is the last label
-        batch_size = int(targets[0].get_shape()[0])
+        batch_size = int(targets.get_shape()[0])
         s_labels = tf.constant(self.output_dim-1,
                                dtype=tf.int32,
                                shape=[batch_size, 1])
-        encoder_inputs = tf.concat(1, [s_labels, targets[0]])
+        encoder_inputs = tf.concat(1, [s_labels, targets])
 
         #compute the output logits
         logits, _ = self.decoder(
@@ -78,4 +82,7 @@ class EncoderDecoder(classifier.Classifier):
             first_step=True,
             is_training=is_training)
 
-        return logits, target_seq_length[0] + 1
+        #compute the reconstruction of the audio signal
+        reconstruction = self.reconstructor(hlfeat=hlfeat)
+
+        return logits, target_seq_length + 1

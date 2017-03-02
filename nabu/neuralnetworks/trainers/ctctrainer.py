@@ -18,14 +18,17 @@ class CTCTrainer(trainer.Trainer):
         method)
 
         Args:
-            targets: a [batch_size, max_target_length] tensor containing the
-                targets
+            targets: a tupple of targets, the first one being a
+                [batch_size, max_target_length] tensor containing the real
+                targets, the second one being a [batch_size, max_audioseq_length]
+                tensor containing the audio samples or other extra information.
             logits: a [batch_size, max_logit_length, dim] tensor containing the
                 logits
             logit_seq_length: the length of all the logit sequences as a
                 [batch_size] vector
             target_seq_length: the length of all the target sequences as a
-                [batch_size] vector
+                tupple of two [batch_size] vectors, both for one of the elements
+                in the targets tupple
 
         Returns:
             a scalar value containing the loss
@@ -34,7 +37,7 @@ class CTCTrainer(trainer.Trainer):
         with tf.name_scope('CTC_loss'):
 
             #get the batch size
-            targets = tf.expand_dims(targets, 2)
+            targets = tf.expand_dims(targets[0], 2)
             batch_size = int(targets.get_shape()[0])
 
             #convert the targets into a sparse tensor representation

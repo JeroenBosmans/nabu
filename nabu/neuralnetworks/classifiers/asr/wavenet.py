@@ -39,7 +39,7 @@ class Wavenet(classifier.Classifier):
         #create the output layer
         outlayer = layer.Conv1dLayer(int(self.conf['num_units']), 1, 1)
 
-        #add gaussian noise to the inputs if training
+        #add gaussian noise to the inputs
         if is_training:
             forward = inputs + tf.random_normal(inputs.get_shape(),
                                                 stddev=0.6)
