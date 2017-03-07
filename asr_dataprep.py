@@ -25,9 +25,9 @@ feat_cfg.read(feat_cfg_file)
 feat_cfg = dict(feat_cfg.items('features'))
 
 #read if what kind of training we are aiming at
-if database_cfg['training_mode'] == 'supervised':
+if database_cfg['train_mode'] == 'supervised':
     nonsupervised = False
-elif database_cfg['training_mode'] == 'nonsupervised':
+elif database_cfg['train_mode'] == 'nonsupervised':
     nonsupervised = True
 else:
     raise Exception('undefined training mode type: %s' % database_cfg['training_mode'])

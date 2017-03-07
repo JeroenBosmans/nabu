@@ -3,6 +3,7 @@ contains the Trainer factory mehod'''
 
 import cross_entropytrainer
 import ctctrainer
+import cross_entropytrainer_rec
 
 def factory(conf,
             decoder,
@@ -41,6 +42,8 @@ def factory(conf,
         trainer_class = ctctrainer.CTCTrainer
     elif conf['trainer'] == 'cross_entropy':
         trainer_class = cross_entropytrainer.CrossEntropyTrainer
+    elif conf['trainer'] == 'cross_entropy_rec':
+        trainer_class = cross_entropytrainer_rec.CrossEntropyTrainerRec
     else:
         raise Exception('Undefined trainer type: %s' % conf['trainer'])
 

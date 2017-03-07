@@ -102,13 +102,13 @@ def train_asr(clusterfile,
     # If nonsupervised, we also need a second feature reader for the audio samples
     if(nonsupervised):
 
-        featdir = os.path.join(database_cfg['train_dir'], quant_cfg['name'])
+        featdir2 = os.path.join(database_cfg['train_dir'], quant_cfg['name'])
 
         with open(featdir + '/maxlength', 'r') as fid:
             max_length_audio = int(fid.read())
 
         audioreader = feature_reader.FeatureReader(
-            scpfile=featdir + '/feats_shuffled.scp',
+            scpfile=featdir2 + '/feats_shuffled.scp',
             cmvnfile=None,
             utt2spkfile=None,
             max_length=max_length_audio)
@@ -171,7 +171,8 @@ def train_asr(clusterfile,
     #create the classifier
     classifier = asr_factory.factory(
         conf=nnet_cfg,
-        output_dim=coder.num_labels)
+#        output_dim=coder.num_labels)
+        output_dim = int(quant_cfg['quant_levels']))
 
     #create the callable for the decoder
     decoder = partial(
