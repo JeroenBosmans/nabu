@@ -310,11 +310,11 @@ def main(_):
     elif computing_cfg['distributed'] == 'condor_local':
 
         #create the directories
-        if not os.path.isdir(FLAGS.expdir + '/outputs'):
-            os.makedirs(FLAGS.expdir + '/outputs')
-        if os.path.isdir(os.path.join(FLAGS.expdir, 'cluster')):
-            shutil.rmtree(os.path.join(FLAGS.expdir, 'cluster'))
-        os.makedirs(os.path.join(FLAGS.expdir, 'cluster'))
+
+        if not os.path.isdir(os.path.join(FLAGS.expdir, 'outputs')):
+            os.makedirs(os.path.join(FLAGS.expdir, 'outputs'))
+        if not os.path.isdir(os.path.join(FLAGS.expdir, 'cluster')):
+            os.makedirs(os.path.join(FLAGS.expdir, 'cluster'))
 
         #create the cluster file
         with open(FLAGS.expdir + '/clusterfile', 'w') as fid:

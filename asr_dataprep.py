@@ -6,7 +6,7 @@ from six.moves import configparser
 from nabu.processing import ark, prepare_data
 from nabu.processing.target_normalizers import normalizer_factory
 
-#pointers to the standard config files
+#pointers to the config files
 database_cfg_file = 'config/asr_databases/TIMIT.conf'
 feat_cfg_file = 'config/features/fbank.cfg'
 
