@@ -3,6 +3,7 @@ contains the quantizer of the audio samples'''
 
 import numpy as np
 import feature_computer
+from scipy.signal import resample
 
 class Quant_Audio(feature_computer.FeatureComputer):
     ''' a pseudo-feature computer that actually is used to store the audio
@@ -26,8 +27,11 @@ class Quant_Audio(feature_computer.FeatureComputer):
         # define the parameters
         num_levels = int(self.conf['quant_levels'])
         mu = num_levels-1
-        # convert the speech signal to a float representation
-        inputs = sig.astype(np.float32)
+        #resample the signal to the rate that is specified in config file
+        seconds = float(sig.shape[0])/float(rate)
+        new_rate = int(self.conf['quant_rate'])
+        new_nbr_elements = int(new_rate*seconds)
+        inputs = resample(sig, new_nbr_elements)
         #inputs should first be translated to -1,1 range
         ####
         # UPDATE NEEDED: it might be better to divide here by a constant, such that all of the utterances are handled equally?

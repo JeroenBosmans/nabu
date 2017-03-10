@@ -35,11 +35,11 @@ class EncoderDecoder(classifier.Classifier):
                 [batch_size x max_input_length x feature_dim] tensor
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
-            targets: the targets to the neural network, this is a
-                [batch_size x max_output_length] tensor. The targets can be
+            targets: the targets to the neural network, this is a tuple of
+                [batch_size x max_output_length] tensors. The targets can be
                 used during training
             target_seq_length: The sequence lengths of the target utterances,
-                this is a [batch_size] vector
+                this is a tuple of [batch_size] vectors
             is_training: whether or not the network is in training mode
 
         Returns:
@@ -69,7 +69,7 @@ class EncoderDecoder(classifier.Classifier):
                                dtype=tf.int32,
                                shape=[batch_size, 1])
 
-        encoder_inputs = tf.concat([s_labels, targets], 1)
+        encoder_inputs = tf.concat([s_labels, targets[0]], 1)
 
         #compute the output logits
         logits, _ = self.decoder(

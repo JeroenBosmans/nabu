@@ -40,7 +40,7 @@ class CrossEntropyTrainer(trainer.Trainer):
 
 
             #put all the tragets on top of each other
-            split_targets = tf.unstack(targets)
+            split_targets = tf.unstack(targets[0])
 
             for i, target in enumerate(split_targets):
                 #only use the real data

@@ -27,7 +27,7 @@ class EncoderDecoderReconstructor(classifier.Classifier):
         self.decoder = asr_decoder_factory.factory(conf, self.output_dim)
 
         #create the reconstructors
-        self.reconstructor = reconstructor_factory(conf)
+        self.reconstructor = reconstructor_factory.factory(conf)
 
     def _get_outputs(self, inputs, input_seq_length, targets=None,
                      target_seq_length=None, is_training=False):

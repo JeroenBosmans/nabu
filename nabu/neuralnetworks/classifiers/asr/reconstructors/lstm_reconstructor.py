@@ -14,107 +14,66 @@ class LstmReconstructor(reconstructor.Reconstructor):
         Args:
             hlfeat: the high level features that came out of the listener
                 [batch_size x max_hl_seq_length x feat_dim]
-            sequence_length: a vector that contains the exact lenght of all
-                of the high level feature vectors.
+            reconstructor_inputs: the audio samples that are present as targets
+                in a [batch_size x nbr_audiosamples] tensor
             is_training: boolean that keeps if we are currently training
 
         Returns:
             - the output logits of the reconstructed audio samples
                 [batch_size x number_audio_samples x num_quant_levels] tensor
         '''
+
+        #get dimensions
+        batch_size = int(hlfeat.get_shape()[0])
+        max_nbr_features = int(hlfeat.get_shape()[1])
+        hlf_dim = int(hlfeat.get_shape()[2])
+
         #create the rnn cell for the decoder
-        rnn_cell = tf.nn.rnn_cell.BasicLSTMCell(int(hlfeat.get_shape()[2]))
+        rnn_cell = tf.contrib.rnn.BasicLSTMCell(int(hlfeat.get_shape()[2]))
+
+        # add one zero high level feature vector to the beginning for each batch_size
+        zeros = tf.zeros([batch_size, 1, hlf_dim])
+        hlfeat = tf.concat([zeros, hlfeat],1)
+
+        # the very last hlf for each batch can be discarded
+        hlfeat = tf.slice(hlfeat,[0,0,0],[-1,max_nbr_features,-1])
+
+        # reshape high level features to do all computation in parallel
+        hlfeat = tf.reshape(hlfeat,[-1, hlf_dim])
+
+        #pad the inputs such that they are of length max_nbr_features*samples_per_hlfeature
+        nbr_audio_samples = int(reconstructor_inputs.get_shape()[1])
+        nbr_needed = self.samples_per_hlfeature*max_nbr_features
+        nbr_to_pad = nbr_needed-nbr_audio_samples
+        zeros = tf.zeros([batch_size,nbr_to_pad], dtype=tf.int32)
+        reconstructor_inputs = tf.concat([reconstructor_inputs,zeros],1)
+
+        # reshape the reconstructor inputs to the correct format
+        reconstructor_inputs = tf.reshape(reconstructor_inputs,[-1, self.samples_per_hlfeature])
 
         # transform reconstructor inputs to one hot encoded
         one_hot_inputs = tf.one_hot(reconstructor_inputs, self.output_dim,
                                     dtype=tf.float32)
 
-        '''
-        Hier loopen op een manier zodat we een voor een alle high level features
-        verwerken en zo alle audio samples verwerken.
-        '''
+        # transform the inputs to a list
+        inputs = tf.unstack(one_hot_inputs, axis=1)
 
-        # create the samples for the first PSEUDO high level feature (all zeros)
-        pseudo_hlf = tf.zeros([hlfeat.get_shape()[0],hlfeat.get_shape()[2]])
-        part_inputs = self.get_list_samples(one_hot_inputs, -1)
-        last_output = tf.zeros([hlfeat.get_shape()[0],hlfeat.get_shape()[2]])
-        output = self.reconstruct_one_part(rnn_cell, part_inputs, pseudo_hlf, last_output)
+        #as initial previous inputs, for now we take zero vectors
+        last_output = tf.zeros([hlfeat.get_shape()[0],hlfeat.get_shape()[1]])
 
-        print('dfasdfasdfasdf')
-        print(hlfeat.get_shape()[1])
-        # loop over all of the hl feature vectors
-        #for i in range(hlfeat.get_shape()[1]):
-        for i in range(5):
-            part_inputs = self.get_list_samples(one_hot_inputs, i)
-            hlf = tf.slice(hlfeat,[0,i,0],[-1,1,-1])
-            hlf = tf.reshape(hlf, [int(hlfeat.get_shape()[0]),-1])
-            temp = self.reconstruct_one_part(rnn_cell, part_inputs, hlf, last_output)
-            tf.concat(1,[output, temp])
-            print('in loop, iteration %d', i)
 
-        # convert outputs from a list to a tensor
-        output_tensor_time_major = tf.pack(output)
+        output, _ = tf.contrib.legacy_seq2seq.rnn_decoder(decoder_inputs=inputs,
+                        initial_state=(hlfeat,last_output), cell=rnn_cell, scope='rnn_decoder')
 
-        #convert to the right axes
-        output_tensor = tf.transpose(output_tensor_time_major, [1,0,2])
+        #transform the output from a list to a tensor
+        output_tensor = tf.stack(output, axis=1)
 
-        # we now have sequence of outputs of dimension of the high level features
+        # we now have sequences of outputs of dimension of the high level features
         # still need to convert this to the dimension of the number of quantisation levels
         linear_layer = layer.Linear(self.output_dim)
         logits = linear_layer(output_tensor)
 
+        # transform back to a format of [batch_size x nbr_audio_samples x quantlevels]
+        logits = tf.reshape(logits,[batch_size,-1,self.output_dim])
+
         return logits
-
-
-
-    def reconstruct_one_part(self, rnn_cell, decoder_inputs, hlf, last_output):
-        '''
-        Create a part of the audiosamples, all those which are computed from one
-        high level feature
-
-        Args:
-            rnn_cel: the rnn cel that is the base of the decoder
-            decoder_inputs: a list of inputs for the decoder, known from
-                training data in a tensor [batch_size x num_quant_levels]
-            hfl: the high level feature vector that we're using to predict
-                this part of the audio samples.
-
-        Returns:
-            - the output logits for a part of the audio sampels to predict in
-                a [batch_size x samples_per_hlfeature x num_quant_levels] tensor
-        '''
-        with tf.variable_scope(self.scope):
-            output, _ = tf.nn.seq2seq.rnn_decoder(decoder_inputs=decoder_inputs,
-                            initial_state=(hlf,last_output), cell=rnn_cell, scope='rnn_decoder')
-
-        self.scope.reuse_variables()
-
-        return output
-
-
-    def get_list_samples(self, one_hot_inputs, hlf_number):
-        '''
-        Create a list of one hot inputs for a certain hlf that you're considering,
-        represented by its number in the sequence (starting with zero)
-
-        Args:
-            one_hot_inputs: the tensor of all of the one hot inputs with shape
-                            [batch_size x number_audio_samples x quant levels]
-            hlf_number: the number of the hlf that is considered
-
-        Returns:
-            part_inputs_list: A list of samples_per_hlfeature one hot audio samples
-        '''
-        # compute the position of where to start for this hlf
-        start = (hlf_number+1)*self.samples_per_hlfeature
-
-        # slice the right part of the one hot inputs
-        part_inputs = tf.slice(one_hot_inputs,[0,start,0],[-1,self.samples_per_hlfeature,-1])
-
-        # transform to time major
-        part_inputs_time_major = tf.transpose(part_inputs, [1, 0, 2])
-
-        # transform to a list
-        part_inputs_list = tf.unpack(part_inputs_time_major)
-
-        return part_inputs_list

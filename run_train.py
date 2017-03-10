@@ -13,6 +13,8 @@ from nabu.distributed.static import run_remote
 from nabu.distributed.static import kill_processes
 from train_asr import train_asr
 from train_lm import train_lm
+# new
+from train_nonsupervised import train_nonsupervised
 
 tf.app.flags.DEFINE_string('expdir', 'expdir', 'The experiments directory')
 tf.app.flags.DEFINE_string('type', 'asr', 'one of asr or lm, the training type')
@@ -24,12 +26,12 @@ def main(_):
     '''main function'''
 
     #pointers to the config files
-    computing_cfg_file = 'config/computing/non-distributed.cfg'
+    computing_cfg_file = 'config/computing/condor_local.cfg'
     database_cfg_file = 'config/asr_databases/TIMIT.conf'
     if FLAGS.type == 'asr':
         feat_cfg_file = 'config/features/fbank.cfg'
-    classifier_cfg_file = 'config/asr/LAS.cfg'
-    trainer_cfg_file = 'config/trainer/cross_entropytrainer.cfg'
+    classifier_cfg_file = 'config/asr/LAR.cfg'
+    trainer_cfg_file = 'config/trainer/cross_entropytrainer_rec.cfg'
     decoder_cfg_file = 'config/decoder/BeamSearchDecoder.cfg'
     # NEW. Only necessary when doing partly non supervised training
     quantization_cfg_file = 'config/features/quant_audio_samples.cfg'
@@ -94,11 +96,20 @@ def main(_):
     if computing_cfg['distributed'] == 'non-distributed':
 
         if FLAGS.type == 'asr':
-            train_asr(clusterfile=None,
-                      job_name='local',
-                      task_index=0,
-                      ssh_command='None',
-                      expdir=FLAGS.expdir)
+            if database_cfg['train_mode']=='supervised':
+                train_asr(clusterfile=None,
+                        job_name='local',
+                        task_index=0,
+                        ssh_command='None',
+                        expdir=FLAGS.expdir)
+            elif database_cfg['train_mode']=='nonsupervised':
+                train_nonsupervised(clusterfile=None,
+                                    job_name='local',
+                                    task_index=0,
+                                    ssh_command=None,
+                                    expdir=FLAGS.expdir)
+            else:
+                raise Exception('undefined training mode type: %s' % database_cfg['training_mode'])
         else:
             train_lm(clusterfile=None,
                      job_name='local',
@@ -301,6 +312,9 @@ def main(_):
         #create the directories
         if not os.path.isdir(FLAGS.expdir + '/outputs'):
             os.makedirs(FLAGS.expdir + '/outputs')
+        if os.path.isdir(os.path.join(FLAGS.expdir, 'cluster')):
+            shutil.rmtree(os.path.join(FLAGS.expdir, 'cluster'))
+        os.makedirs(os.path.join(FLAGS.expdir, 'cluster'))
 
         #create the cluster file
         with open(FLAGS.expdir + '/clusterfile', 'w') as fid:

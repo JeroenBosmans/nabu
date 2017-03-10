@@ -70,7 +70,7 @@ class EncoderReconstructor(classifier.Classifier):
         sos_labels = tf.constant(self.output_dim-1,
                                dtype=tf.int32,
                                shape=[batch_size, 1])
-        reconstructor_inputs = tf.concat(1, [sos_labels, targets])
+        reconstructor_inputs = tf.concat([sos_labels, targets],1)
 
         #compute the output logits
         logits = self.reconstructor(

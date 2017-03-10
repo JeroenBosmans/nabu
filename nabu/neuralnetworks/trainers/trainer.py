@@ -107,13 +107,13 @@ class Trainer(object):
                 target_seq_length1 = tf.placeholder(
                     dtype=tf.int32,
                     shape=[dispenser.size],
-                    name='output_seq_length')
+                    name='output_seq_length1')
 
                 # the length of the sequences of the second element of target tupple
                 target_seq_length2 = tf.placeholder(
                     dtype=tf.int32,
                     shape=[dispenser.size],
-                    name='output_seq_length')
+                    name='output_seq_length2')
 
                 # last two placeholders are passed together as one argument
                 self.target_seq_length = (target_seq_length1, target_seq_length2)
@@ -424,7 +424,7 @@ class Trainer(object):
 
         # go from a list of tupples to two seperate lists
         targets1 = [t[0] for t in targets]
-        targets2 = [t[1] for t in targets]
+        targets2 = [t[1].reshape([-1]) for t in targets]
 
         #get a list of sequence lengths
         input_seq_length = [i.shape[0] for i in inputs]
@@ -534,15 +534,24 @@ class Trainer(object):
                 inp, np.zeros([self.max_input_length-inp.shape[0],
                                inp.shape[1]]), 0) for inp in inputs])
             label_tensor = np.array([np.append(
-                lab, np.zeros([self.max_target_length[0]-lab.shape[0]]), 0)
+                lab, np.zeros([self.max_target_length2-lab.shape[0]]), 0)
                                      for lab in labels])
+            print 'Doing validation, processing batch with lenghts'
+            print label_seq_length
+
+            #TEMPORARILY
+            # fill the placeholders for the other kind of targets.
+            zero_targets = np.zeros([self.dispenser.size,self.max_target_length1])
+            one_lengths = np.ones([label_tensor.shape[0]],dtype=np.int32)
 
             loss = sess.run(
                 self.decoder_loss,
                 feed_dict={self.inputs:input_tensor,
                            self.input_seq_length:input_seq_length,
-                           self.targets:label_tensor,
-                           self.target_seq_length:label_seq_length})
+                           self.targets[1]:label_tensor,
+                           self.target_seq_length[1]:label_seq_length,
+                           self.targets[0]:zero_targets,
+                           self.target_seq_length[0]:one_lengths})
 
             avrg_loss = ((total_elements*avrg_loss + num_elements*loss)/
                          (num_elements + total_elements))

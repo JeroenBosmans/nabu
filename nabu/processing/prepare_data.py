@@ -49,9 +49,6 @@ def prepare_data(datadir, featdir, conf):
     #compute all the features
     max_length = 0
     for utt in wavfiles:
-        print('=========================================')
-        print rate_utt[utt][0]
-        print('=========================================')
         if found_segments:
             for seg in segments[utt]:
                 features = comp(
