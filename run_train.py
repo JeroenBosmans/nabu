@@ -13,8 +13,6 @@ from nabu.distributed.static import run_remote
 from nabu.distributed.static import kill_processes
 from train_asr import train_asr
 from train_lm import train_lm
-# new
-from train_nonsupervised import train_nonsupervised
 
 tf.app.flags.DEFINE_string('expdir', 'expdir', 'The experiments directory')
 tf.app.flags.DEFINE_string('type', 'asr', 'one of asr or lm, the training type')
@@ -35,6 +33,7 @@ def main(_):
     decoder_cfg_file = 'config/decoder/BeamSearchDecoder.cfg'
     # NEW. Only necessary when doing partly non supervised training
     quantization_cfg_file = 'config/features/quant_audio_samples.cfg'
+
 
     #read the computing config file
     parsed_computing_cfg = configparser.ConfigParser()
@@ -81,7 +80,6 @@ def main(_):
             if database_cfg['train_mode'] == 'nonsupervised':
                 shutil.copyfile(quantization_cfg_file,
                                 os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
-
         shutil.copyfile(classifier_cfg_file,
                         os.path.join(FLAGS.expdir, 'model',
                                      '%s.cfg' % FLAGS.type))
@@ -96,20 +94,11 @@ def main(_):
     if computing_cfg['distributed'] == 'non-distributed':
 
         if FLAGS.type == 'asr':
-            if database_cfg['train_mode']=='supervised':
-                train_asr(clusterfile=None,
-                        job_name='local',
-                        task_index=0,
-                        ssh_command='None',
-                        expdir=FLAGS.expdir)
-            elif database_cfg['train_mode']=='nonsupervised':
-                train_nonsupervised(clusterfile=None,
-                                    job_name='local',
-                                    task_index=0,
-                                    ssh_command=None,
-                                    expdir=FLAGS.expdir)
-            else:
-                raise Exception('undefined training mode type: %s' % database_cfg['training_mode'])
+            train_asr(clusterfile=None,
+                      job_name='local',
+                      task_index=0,
+                      ssh_command='None',
+                      expdir=FLAGS.expdir)
         else:
             train_lm(clusterfile=None,
                      job_name='local',
@@ -310,11 +299,11 @@ def main(_):
     elif computing_cfg['distributed'] == 'condor_local':
 
         #create the directories
-
         if not os.path.isdir(os.path.join(FLAGS.expdir, 'outputs')):
             os.makedirs(os.path.join(FLAGS.expdir, 'outputs'))
         if not os.path.isdir(os.path.join(FLAGS.expdir, 'cluster')):
             os.makedirs(os.path.join(FLAGS.expdir, 'cluster'))
+
 
         #create the cluster file
         with open(FLAGS.expdir + '/clusterfile', 'w') as fid:

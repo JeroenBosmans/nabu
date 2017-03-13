@@ -22,7 +22,7 @@ class Reconstructor(object):
 
         #save the parameters
         self.samples_per_hlfeature = int(conf['samples_per_hlfeature'])
-        self.unpredictable_samples = int(conf['samples_per_hlfeature'])
+        self.unpredictable_samples = int(conf['unpredictable_samples'])
         self.output_dim = output_dim
 
         self.scope = tf.VariableScope(False, name or type(self).__name__)

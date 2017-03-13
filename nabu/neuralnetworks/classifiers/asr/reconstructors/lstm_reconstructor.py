@@ -41,6 +41,9 @@ class LstmReconstructor(reconstructor.Reconstructor):
         # reshape high level features to do all computation in parallel
         hlfeat = tf.reshape(hlfeat,[-1, hlf_dim])
 
+        # remove the first samples, since the are unpredictable anyway
+        reconstructor_inputs = tf.slice(reconstructor_inputs,[0,self.unpredictable_samples],[-1,-1])
+
         #pad the inputs such that they are of length max_nbr_features*samples_per_hlfeature
         nbr_audio_samples = int(reconstructor_inputs.get_shape()[1])
         nbr_needed = self.samples_per_hlfeature*max_nbr_features
@@ -75,5 +78,9 @@ class LstmReconstructor(reconstructor.Reconstructor):
 
         # transform back to a format of [batch_size x nbr_audio_samples x quantlevels]
         logits = tf.reshape(logits,[batch_size,-1,self.output_dim])
+
+        #once again add the unpredictable samples, simply as all zeros
+        zeros = tf.zeros([batch_size,self.unpredictable_samples,self.output_dim])
+        logits=tf.concat([zeros, logits],axis=1)
 
         return logits

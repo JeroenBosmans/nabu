@@ -36,11 +36,13 @@ class Classifier(object):
                 [batch_size x max_input_length x feature_dim] tensor
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
-            targets: the targets to the neural network, this is a
-                [batch_size x max_output_length] tensor. The targets can be
-                used during training
-            target_seq_length: The sequence lengths of the target utterances,
-                this is a [batch_size] vector
+            targets: a tupple of targets, the first one being a
+                [batch_size, max_target_length] tensor containing the real
+                targets, the second one being a [batch_size, max_audioseq_length]
+                tensor containing the audio samples or other extra information.
+            target_seq_length: the length of all the target sequences as a
+                tupple of two [batch_size] vectors, both for one of the elements
+                in the targets tupple
             is_training: whether or not the network is in training mode
 
         Returns:
