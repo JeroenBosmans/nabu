@@ -77,7 +77,8 @@ def main(_):
             shutil.copyfile(feat_cfg_file,
                             os.path.join(FLAGS.expdir, 'model', 'features.cfg'))
 
-            if database_cfg['train_mode'] == 'nonsupervised':
+            if (database_cfg['train_mode'] == 'nonsupervised' or \
+                    database_cfg['train_mode'] == 'onlynonsupervised'):
                 shutil.copyfile(quantization_cfg_file,
                                 os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
         shutil.copyfile(classifier_cfg_file,
