@@ -23,10 +23,11 @@ class CrossEntropyTrainerRec(trainer.Trainer):
                 [batch_size, max_target_length] tensor containing the real
                 targets, the second one being a [batch_size, max_audioseq_length]
                 tensor containing the audio samples or other extra information.
-            logits: a [batch_size, max_logit_length, dim] tensor containing the
-                logits
-            logit_seq_length: the length of all the logit sequences as a
-                [batch_size] vector
+            logits: a tuple of [batch_size, max_logit_length, dim] tensors,
+                where in this case the second element will contain the actual information
+            logit_seq_length: the length of all the logit sequences as a tuple
+                [batch_size] vectors, where in this case the second element will
+                contain the actual information
             target_seq_length: the length of all the target sequences as a
                 tupple of two [batch_size] vectors, both for one of the elements
                 in the targets tupple
@@ -36,6 +37,10 @@ class CrossEntropyTrainerRec(trainer.Trainer):
         '''
 
         with tf.name_scope('cross_entropy_loss'):
+            #extract the logits and the lengths out of the tuple
+            logits = logits[1]
+            logit_seq_length = logit_seq_length[1]
+
             output_dim = int(logits.get_shape()[2])
 
             #put all the targets on top of each other

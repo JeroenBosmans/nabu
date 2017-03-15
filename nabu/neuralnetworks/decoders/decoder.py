@@ -31,6 +31,17 @@ class Decoder(object):
         self.expdir = expdir
         self.coder = coder
         self.batch_size = int(conf['batch_size'])
+
+        # it is assumed that decoders will only be used to decode the text targets
+        # we can then store the output dimension as a single element in stead of
+        # what could be a tuple
+        if isinstance(classifier.output_dim, tuple):
+            self.output_dim = classifier.output_dim[0]
+        elif isinstance(classifier.output_dim, int):
+            self.output_dim = classifier.output_dim
+        else:
+            raise Exception('The output_dim field of the classifier is in a wrong format')
+
         with tf.variable_scope(type(self).__name__):
             #create the inputs placeholder
             self.inputs = tf.placeholder(

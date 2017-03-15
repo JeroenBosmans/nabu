@@ -3,11 +3,12 @@ contains de LAS class'''
 
 import tensorflow as tf
 from nabu.neuralnetworks.classifiers import classifier
-from encoders import encoder_factory
-from asr_decoders import asr_decoder_factory
+import encoders
+import asr_decoders
 
-class EncoderDecoder(classifier.Classifier):
-    '''a general class for an encoder decoder system'''
+class Unidir_LAS(classifier.Classifier):
+    '''a listen attend and spell classifier with unidirectional
+    LSTMs in its listener'''
     def __init__(self, conf, output_dim, name=None):
         '''LAS constructor
 
@@ -17,13 +18,20 @@ class EncoderDecoder(classifier.Classifier):
             name: the classifier name
         '''
 
-        super(EncoderDecoder, self).__init__(conf, output_dim, name)
-
         #create the listener
-        self.encoder = encoder_factory.factory(conf)
+        self.encoder = encoders.unidir_listener.Unidir_Listener(
+            numlayers=int(conf['listener_layers']),
+            numunits=int(conf['listener_units']),
+            dropout=float(conf['listener_dropout']))
 
         #create the speller
-        self.decoder = asr_decoder_factory.factory(conf, self.output_dim)
+        self.decoder = asr_decoders.speller.Speller(
+            numlayers=int(conf['speller_layers']),
+            numunits=int(conf['speller_units']),
+            dropout=float(conf['speller_dropout']),
+            sample_prob=float(conf['sample_prob']))
+
+        super(Unidir_LAS, self).__init__(conf, output_dim, name)
 
     def _get_outputs(self, inputs, input_seq_length, targets=None,
                      target_seq_length=None, is_training=False):
@@ -35,11 +43,11 @@ class EncoderDecoder(classifier.Classifier):
                 [batch_size x max_input_length x feature_dim] tensor
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
-            targets: the targets to the neural network, this is a tuple of
-                [batch_size x max_output_length] tensors. The targets can be
+            targets: the targets to the neural network, this is a
+                [batch_size x max_output_length] tensor. The targets can be
                 used during training
             target_seq_length: The sequence lengths of the target utterances,
-                this is a tuple of [batch_size] vectors
+                this is a [batch_size] vector
             is_training: whether or not the network is in training mode
 
         Returns:
@@ -64,19 +72,18 @@ class EncoderDecoder(classifier.Classifier):
 
         #prepend a sequence border label to the targets to get the encoder
         #inputs, the label is the last label
-        batch_size = int(targets[0].get_shape()[0])
+        batch_size = int(targets.get_shape()[0])
         s_labels = tf.constant(self.output_dim-1,
                                dtype=tf.int32,
                                shape=[batch_size, 1])
-
-        encoder_inputs = tf.concat([s_labels, targets[0]], 1)
+        encoder_inputs = tf.concat(1, [s_labels, targets])
 
         #compute the output logits
         logits, _ = self.decoder(
             hlfeat=hlfeat,
             encoder_inputs=encoder_inputs,
-            initial_state=self.decoder.zero_state(batch_size),
-            first_step=True,
+            numlabels=self.output_dim,
+            initial_state=None,
             is_training=is_training)
 
-        return (logits, None), (target_seq_length[0] + 1, None)
+        return logits, target_seq_length + 1

@@ -17,8 +17,8 @@ class Speller(asr_decoder.AsrDecoder):
         Args:
             hlfeat: the high level features of shape
                 [batch_size x hl_seq_length x feat_dim]
-            encoder_inputs: the one-hot encoded training targets of shape
-                [batch_size x target_seq_length].
+            encoder_inputs: the training targets of shape
+                [batch_size x target_seq_length] (not yet one hot encoded).
             initial_state: the initial decoder state, could be usefull for
                 decoding
             first_step: bool that determines if this is the first step

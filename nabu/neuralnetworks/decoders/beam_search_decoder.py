@@ -108,7 +108,7 @@ class BeamSearchDecoder(decoder.Decoder):
                 #check if all beam elements have terminated
                 cont = tf.logical_and(
                     tf.logical_not(beam.all_terminated(
-                        step, classifier.output_dim - 1)),
+                        step, self.output_dim - 1)),
                     tf.less(step, int(self.conf['max_steps'])))
 
             return cont
@@ -124,7 +124,7 @@ class BeamSearchDecoder(decoder.Decoder):
             [self.batch_size, int(self.conf['beam_width'])],
             dtype=tf.int32)
         sequences = tf.constant(
-            classifier.output_dim-1,
+            self.output_dim-1,
             shape=[self.batch_size, int(self.conf['beam_width']),
                    int(self.conf['max_steps'])],
             dtype=tf.int32)

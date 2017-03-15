@@ -24,12 +24,12 @@ def main(_):
     '''main function'''
 
     #pointers to the config files
-    computing_cfg_file = 'config/computing/condor_local.cfg'
+    computing_cfg_file = 'config/computing/non-distributed.cfg'
     database_cfg_file = 'config/asr_databases/TIMIT.conf'
     if FLAGS.type == 'asr':
         feat_cfg_file = 'config/features/fbank.cfg'
-    classifier_cfg_file = 'config/asr/LAR.cfg'
-    trainer_cfg_file = 'config/trainer/cross_entropytrainer_rec.cfg'
+    classifier_cfg_file = 'config/asr/LASAR.cfg'
+    trainer_cfg_file = 'config/trainer/cross_entr_partly_nonsupervised.cfg'
     decoder_cfg_file = 'config/decoder/BeamSearchDecoder.cfg'
     # NEW. Only necessary when doing partly non supervised training
     quantization_cfg_file = 'config/features/quant_audio_samples.cfg'

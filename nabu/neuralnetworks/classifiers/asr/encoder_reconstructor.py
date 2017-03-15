@@ -78,4 +78,4 @@ class EncoderReconstructor(classifier.Classifier):
             reconstructor_inputs=reconstructor_inputs,
             is_training=is_training)
 
-        return logits, target_seq_length[1] + 1
+        return (None, logits), (None, target_seq_length[1] + 1)

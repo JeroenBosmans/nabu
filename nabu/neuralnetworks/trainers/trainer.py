@@ -501,9 +501,10 @@ class Trainer(object):
         looped = False
         avrg_loss = 0.0
         total_elements = 0
+        total_steps = int(np.ceil(float(reader.num_utt)/float(self.dispenser.size)))
+        step = 1
 
         while not looped:
-
             inputs = []
             labels = []
 
@@ -537,8 +538,7 @@ class Trainer(object):
             label_tensor = np.array([np.append(
                 lab, np.zeros([self.max_target_length2-lab.shape[0]]), 0)
                                      for lab in labels])
-            print 'Doing validation, processing batch with lenghts'
-            print label_seq_length
+            print 'Doing validation, step %d/%d' %(step, total_steps)
 
             #TEMPORARILY
             # fill the placeholders for the other kind of targets.
@@ -557,6 +557,8 @@ class Trainer(object):
             avrg_loss = ((total_elements*avrg_loss + num_elements*loss)/
                          (num_elements + total_elements))
             total_elements += num_elements
+
+            step=step+1
 
         return avrg_loss
 

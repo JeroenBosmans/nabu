@@ -14,14 +14,31 @@ class Classifier(object):
         Args:
             conf: The classifier configuration
             output_dim: the classifier output dimension
+                    This is a tuple, each element representing the output_dim
+                    for one kind of targets
             name: the classifier name
         '''
 
         self.conf = conf
-        self.output_dim = output_dim
 
-        #increase the output dim with the amount of labels that should be added
-        self.output_dim += int(conf['add_labels'])
+        # if there is only a add_labels in the config, we suppose that only the
+        # first element of this tuple is important
+        if('add_labels' in conf):
+            self.output_dim = output_dim[0] + int(conf['add_labels'])
+
+        # if there is only an add_labels_reconstruction but not an
+        # add_labels_prediction in config, assume only second element to be of importance
+        elif('add_labels_reconstruction' in conf and not 'add_labels_prediction' in conf):
+            self.output_dim = output_dim[1] + int(conf['add_labels_reconstruction'])
+
+        # if both present, both elements of the tuple will be of importance
+        elif('add_labels_reconstruction' in conf and 'add_labels_prediction' in conf):
+            outdim1 = output_dim[0] + int(conf['add_labels_prediction'])
+            outdim2 = output_dim[1] + int(conf['add_labels_reconstruction'])
+            self.output_dim = (outdim1, outdim2)
+
+        else:
+            raise Exception('Wrong kind of add_labels information in the config')
 
         #create the variable scope for the classifier
         self.scope = tf.VariableScope(False, name or type(self).__name__)
@@ -47,8 +64,8 @@ class Classifier(object):
 
         Returns:
             A pair containing:
-                - output logits
-                - the output logits sequence lengths as a vector
+                - output logits as a tuple of tensors
+                - the output logits sequence lengths as a tuple of vectors
         '''
 
         with tf.variable_scope(self.scope):
@@ -83,8 +100,8 @@ class Classifier(object):
 
         Returns:
             A pair containing:
-                - output logits
-                - the output logits sequence lengths as a vector
+                - output logits in a tuple (one of the elements can be None)
+                - the output logits sequence lengths as a tuple of vectors
         '''
 
         raise NotImplementedError("Abstract method")
