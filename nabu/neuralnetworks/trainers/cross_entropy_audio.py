@@ -5,7 +5,7 @@ import tensorflow as tf
 import trainer
 from nabu.neuralnetworks import ops
 
-class CrossEntropyTrainerRec(trainer.Trainer):
+class CrossEntropyTrainer(trainer.Trainer):
     '''A trainer that minimises the cross-enthropy loss, the output sequences
     must be of the same length as the input sequences'''
 
@@ -20,10 +20,10 @@ class CrossEntropyTrainerRec(trainer.Trainer):
 
         Args:
             targets: a tupple of targets, the first one being a
-                [batch_size, max_target_length] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length]
+                [batch_size x max_target_length] tensor containing the real
+                targets, the second one being a [batch_size x max_audioseq_length x 1]
                 tensor containing the audio samples or other extra information.
-            logits: a tuple of [batch_size, max_logit_length, dim] tensors,
+            logits: a tuple of [batch_size x max_logit_length x dim] tensors,
                 where in this case the second element will contain the actual information
             logit_seq_length: the length of all the logit sequences as a tuple
                 [batch_size] vectors, where in this case the second element will
@@ -43,15 +43,14 @@ class CrossEntropyTrainerRec(trainer.Trainer):
 
             output_dim = int(logits.get_shape()[2])
 
+            # we know the targets are integers when working with audio samples
+            targets_int = tf.cast(targets[1], tf.int32)
+
             #put all the targets on top of each other
-            split_targets = tf.unstack(targets[1])
+            split_targets = tf.unstack(targets_int)
             for i, target in enumerate(split_targets):
                 #only use the real data
                 split_targets[i] = target[:target_seq_length[1][i]]
-
-                #append an end of sequence label
-                split_targets[i] = tf.concat(
-                    [split_targets[i], [output_dim-1]],0)
 
             #concatenate the targets
             nonseq_targets = tf.concat(split_targets,0)

@@ -85,22 +85,14 @@ class EncoderDecoderReconstructor(classifier.Classifier):
             first_step=True,
             is_training=is_training)
 
-        #for the reconstruction, we need the audio samples as targets
-        #add sos labels to the target sequence
-        batch_size = int(targets[1].get_shape()[0])
-        sos_labels = tf.constant(self.output_dim[1]-1,
-                               dtype=tf.int32,
-                               shape=[batch_size, 1])
-        reconstructor_inputs = tf.concat([sos_labels, targets[1]],1)
-
         #compute the output logits
         audio_logits = self.reconstructor(
             hlfeat=hlfeat,
-            reconstructor_inputs=reconstructor_inputs,
+            reconstructor_inputs=targets[1],
             is_training=is_training)
 
         #assemble two kind of logits and lengths in tuples
         logits = (text_logits, audio_logits)
-        logits_lengths = (target_seq_length[0]+1,target_seq_length[1]+1)
+        logits_lengths = (target_seq_length[0]+1,target_seq_length[1])
 
         return logits, logits_lengths

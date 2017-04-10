@@ -14,7 +14,7 @@ class Unidir_Listener(encoder.Encoder):
         '''Listener constructor
 
         Args:
-            numlayers: the number of PBLSTM layers
+            numlayers: the number of PLSTM layers
             numunits: the number of units in each layer
             dropout: the dropout rate
             name: the name of the Listener'''

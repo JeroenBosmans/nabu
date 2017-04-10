@@ -35,16 +35,17 @@ class EncoderReconstructor(classifier.Classifier):
                 [batch_size x max_input_length x feature_dim] tensor
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
-            targets: the targets to the neural network, this is a
-                [batch_size x max_output_length] tensor. The targets can be
-                used during training. These targets are not yet one hot encoded
-            target_seq_length: The sequence lengths of the target utterances,
-                this is a [batch_size] vector
+            targets: the targets to the neural network, this is a tuple of
+                text_targets [batch_size x max_target_length] tensor and
+                reconstruction targets [batch_size x max_target_length2 x target_dim]
+                tensor.
+            target_seq_length: a tuple of [batch_size] tensors that represent the
+                lenghts of the targets
             is_training: whether or not the network is in training mode
 
         Returns:
             A pair containing:
-                - output logits
+                - output logits (for the reconstruction only)
                 - the output logits sequence lengths as a vector
         '''
 
@@ -65,17 +66,10 @@ class EncoderReconstructor(classifier.Classifier):
         # take the second element of the targets tuple as your targets
         targets = targets[1]
 
-        #add sos and eos labels to the target sequence
-        batch_size = int(targets.get_shape()[0])
-        sos_labels = tf.constant(self.output_dim-1,
-                               dtype=tf.int32,
-                               shape=[batch_size, 1])
-        reconstructor_inputs = tf.concat([sos_labels, targets],1)
-
         #compute the output logits
         logits = self.reconstructor(
             hlfeat=hlfeat,
-            reconstructor_inputs=reconstructor_inputs,
+            reconstructor_inputs=targets,
             is_training=is_training)
 
-        return (None, logits), (None, target_seq_length[1] + 1)
+        return (None, logits), (None, target_seq_length[1])

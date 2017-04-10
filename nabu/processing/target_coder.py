@@ -33,7 +33,7 @@ class TargetCoder(object):
 
         encoded_targets = []
 
-        for target in targets.split(' '):
+        for target in targets.split():
             encoded_targets.append(self.lookup[target])
 
         return np.array(encoded_targets, dtype=np.uint32)

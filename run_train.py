@@ -23,13 +23,36 @@ if FLAGS.type not in ['asr', 'lm']:
 def main(_):
     '''main function'''
 
+    #to change quickly
+    # 0 for nondistr, 1 for condor local
+    comp = 1
+    # 0 for LAS, 1 for LAR, 2 for LASAR
+    experiment = 1
+
+
     #pointers to the config files
-    computing_cfg_file = 'config/computing/non-distributed.cfg'
-    database_cfg_file = 'config/asr_databases/TIMIT.conf'
+    if comp==0:
+        computing_cfg_file = 'config/computing/non-distributed.cfg'
+    elif comp==1:
+        computing_cfg_file = 'config/computing/condor_local.cfg'
+    if experiment == 0:
+        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        classifier_cfg_file = 'config/asr/ULAS.cfg'
+        trainer_cfg_file = 'config/trainer/cross_entropy_text.cfg'
+    elif experiment == 1:
+        database_cfg_file = 'config/asr_databases/TIMIT1.conf'
+        classifier_cfg_file = 'config/asr/LAR.cfg'
+        trainer_cfg_file = 'config/trainer/cross_entropy_audio.cfg'
+    elif experiment == 2:
+        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        classifier_cfg_file = 'config/asr/LASAR.cfg'
+        trainer_cfg_file = 'config/trainer/joint_audio_text.cfg'
+    elif experiment == 3:
+        database_cfg_file = 'config/asr_databases/TIMIT50p.conf'
+        classifier_cfg_file = 'config/asr/LASFR.cfg'
+        trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
     if FLAGS.type == 'asr':
         feat_cfg_file = 'config/features/fbank.cfg'
-    classifier_cfg_file = 'config/asr/LAR.cfg'
-    trainer_cfg_file = 'config/trainer/cross_entropytrainer_rec.cfg'
     decoder_cfg_file = 'config/decoder/BeamSearchDecoder.cfg'
     # NEW. Only necessary when doing partly non supervised training
     quantization_cfg_file = 'config/features/quant_audio_samples.cfg'
@@ -78,7 +101,7 @@ def main(_):
                             os.path.join(FLAGS.expdir, 'model', 'features.cfg'))
 
             if (database_cfg['train_mode'] == 'nonsupervised' or \
-                    database_cfg['train_mode'] == 'onlynonsupervised'):
+                    database_cfg['train_mode'] == 'semisupervised'):
                 shutil.copyfile(quantization_cfg_file,
                                 os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
         shutil.copyfile(classifier_cfg_file,

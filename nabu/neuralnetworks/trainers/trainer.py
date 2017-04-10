@@ -16,6 +16,7 @@ class Trainer(object):
                  decoder,
                  classifier,
                  input_dim,
+                 reconstruction_dim,
                  dispenser,
                  val_reader,
                  val_targets,
@@ -30,7 +31,7 @@ class Trainer(object):
             conf: the trainer config
             decoder: a callable that will create a decoder
             input_dim: the input dimension to the nnnetgraph
-            num_steps: the total number of steps that will be taken
+            reconstruction_dim: dimension of the reconstruction targets
             dispenser: a Batchdispenser object
             val_reader: the feature reader for the validation data if None
                 validation will not be used
@@ -82,16 +83,16 @@ class Trainer(object):
                            input_dim],
                     name='inputs')
 
-                #the first part of the tupple of targets
+                #the first part of the tupple of targets (text targets)
                 targets1 = tf.placeholder(
                     dtype=tf.int32,
                     shape=[dispenser.size, self.max_target_length1],
                     name='targets1')
 
-                #the second part of the tupple of targets
+                #the second part of the tupple of targets (audio samples or input features)
                 targets2 = tf.placeholder(
-                    dtype=tf.int32,
-                    shape=[dispenser.size, self.max_target_length2],
+                    dtype=tf.float32,
+                    shape=[dispenser.size, self.max_target_length2, reconstruction_dim],
                     name='targets2')
 
                 # the targets are passed together as a tupple
@@ -220,8 +221,6 @@ class Trainer(object):
                     self.set_val_loss = self.val_loss.assign(
                         self.val_loss_in).op
 
-
-
                     #a variable to scale the learning rate (used to reduce the
                     #learning rate in case validation performance drops)
                     learning_rate_fact = tf.get_variable(
@@ -308,9 +307,9 @@ class Trainer(object):
 
         Args:
             targets: a tupple of targets, the first one being a
-                [batch_size, max_target_length] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length]
-                tensor containing the audio samples or other extra information.
+                [batch_size, max_target_length x dim] tensor containing the real
+                targets, the second one being a [batch_size, max_audioseq_length x dim]
+                tensor containing the reconstruction features.
             logits: a [batch_size, max_logit_length, dim] tensor containing the
                 logits
             logit_seq_length: the length of all the logit sequences as a
@@ -422,7 +421,7 @@ class Trainer(object):
 
         # go from a list of tupples to two seperate lists
         targets1 = [t[0] for t in targets]
-        targets2 = [t[1].reshape([-1]) for t in targets]
+        targets2 = [t[1] for t in targets]
 
         #get a list of sequence lengths
         input_seq_length = [i.shape[0] for i in inputs]
@@ -468,7 +467,13 @@ class Trainer(object):
         if self.conf['validation_mode'] == 'decode':
             outputs = self.decoder.decode(self.val_reader, sess)
 
-            val_loss = self.decoder.score(outputs, self.val_targets)
+            #when decoding, we want the targets to be only the text targets
+            val_text_targets = dict()
+            for utt_id in self.val_targets:
+                val_text_targets[utt_id] = self.val_targets[utt_id][0]
+
+
+            val_loss = self.decoder.score(outputs, val_text_targets)
 
         else:
             val_loss = self.compute_val_loss(self.val_reader, self.val_targets,
@@ -517,39 +522,39 @@ class Trainer(object):
 
             num_elements = len(inputs)
 
+
             #add empty elements to the inputs to get a full batch
             feat_dim = inputs[0].shape[1]
+            rec_dim = labels[0][1].shape[1]
             inputs += [np.zeros([0, feat_dim])]*(
                 self.dispenser.size-len(inputs))
-            labels += [np.zeros([0])]*(
+            labels += [np.zeros([0]), np.zeros([0,rec_dim])]*(
                 self.dispenser.size-len(labels))
 
             #get the sequence length
             input_seq_length = [inp.shape[0] for inp in inputs]
-            label_seq_length = [lab.shape[0] for lab in labels]
-
+            label_seq_length1 = [lab[0].shape[0] for lab in labels]
+            label_seq_length2 = [lab[1].shape[0] for lab in labels]
             #pad and put in a tensor
             input_tensor = np.array([np.append(
                 inp, np.zeros([self.max_input_length-inp.shape[0],
                                inp.shape[1]]), 0) for inp in inputs])
-            label_tensor = np.array([np.append(
-                lab, np.zeros([self.max_target_length2-lab.shape[0]]), 0)
+            label_tensor1 = np.array([np.append(
+                lab[0], np.zeros([self.max_target_length1-lab[0].shape[0]]), 0)
+                                     for lab in labels])
+            label_tensor2 = np.array([np.append(
+                lab[1], np.zeros([self.max_target_length2-lab[1].shape[0], lab[1].shape[1]]), 0)
                                      for lab in labels])
             print 'Doing validation, step %d/%d' %(step, total_steps)
-
-            #TEMPORARILY
-            # fill the placeholders for the other kind of targets.
-            zero_targets = np.zeros([self.dispenser.size,self.max_target_length1])
-            one_lengths = np.ones([label_tensor.shape[0]],dtype=np.int32)
 
             loss = sess.run(
                 self.decoder_loss,
                 feed_dict={self.inputs:input_tensor,
                            self.input_seq_length:input_seq_length,
-                           self.targets[1]:label_tensor,
-                           self.target_seq_length[1]:label_seq_length,
-                           self.targets[0]:zero_targets,
-                           self.target_seq_length[0]:one_lengths})
+                           self.targets[0]:label_tensor1,
+                           self.target_seq_length[0]:label_seq_length1,
+                           self.targets[1]:label_tensor2,
+                           self.target_seq_length[1]:label_seq_length2})
 
             avrg_loss = ((total_elements*avrg_loss + num_elements*loss)/
                          (num_elements + total_elements))

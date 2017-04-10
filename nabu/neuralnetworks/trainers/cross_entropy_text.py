@@ -6,8 +6,9 @@ import trainer
 from nabu.neuralnetworks import ops
 
 class CrossEntropyTrainer(trainer.Trainer):
-    '''A trainer that minimises the cross-enthropy loss, the output sequences
-    must be of the same length as the input sequences'''
+    '''A trainer that minimises the cross-entropy loss between given text logits
+    and text targets. The output sequences must be of the same length as the
+    input sequences'''
 
     def compute_loss(self, targets, logits, logit_seq_length,
                      target_seq_length):
@@ -20,31 +21,42 @@ class CrossEntropyTrainer(trainer.Trainer):
 
         Args:
             targets: a tupple of targets, the first one being a
-                [batch_size, max_target_length] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length]
-                tensor containing the audio samples or other extra information.
+                [batch_size, max_target_length x dim] tensor containing the real
+                targets, the second one being a [batch_size, max_audioseq_length x dim]
+                tensor containing a form of reconstruction features.
             logits: a tuple of [batch_size, max_logit_length, dim] tensors,
-                where in this case the first element will contain the actual information
+                representing the text logits and the reconstruction logits
             logit_seq_length: the length of all the logit sequences as a tuple
-                [batch_size] vectors, where in this case the first element will
-                contain the actual information
+                [batch_size] vectors, first element corresponding to the text
+                logits and the second to the reconstruction logits
             target_seq_length: the length of all the target sequences as a
-                tupple of two [batch_size] vectors, both for one of the elements
-                in the targets tupple
+                tuple of two [batch_size] vectors, both for one of the elements
+                in the targets tuple
 
         Returns:
             a scalar value containing the loss
         '''
 
         with tf.name_scope('cross_entropy_loss'):
-            # extract the logits out of the tuple
+            # extract the text logits out of the tuple
             logits = logits[0]
             logit_seq_length = logit_seq_length[0]
 
             output_dim = int(logits.get_shape()[2])
 
+            #for the logits where there were no acutal targets, the targets in
+            #here will simply be a eos target. So we could replace the corresponding
+            # logits with just and eos logit.
+            eos_logits = tf.expand_dims(tf.constant([0.0]*(output_dim-1) +
+                [1]), 0)
+            eos_logits = tf.pad(eos_logits,
+                             [[0, int(logits.get_shape()[1])-1], [0, 0]])
+            eos_logits = tf.stack([eos_logits]*int(logits.get_shape()[0]), 0)
 
-            #put all the tragets on top of each other
+            empty_targets = tf.equal(target_seq_length[0], 0)
+            logits = tf.where(empty_targets, eos_logits, logits)
+
+            #put all the targets on top of each other
             split_targets = tf.unstack(targets[0])
 
             for i, target in enumerate(split_targets):

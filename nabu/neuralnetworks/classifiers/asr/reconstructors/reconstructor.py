@@ -21,8 +21,12 @@ class Reconstructor(object):
 
 
         #save the parameters
-        self.samples_per_hlfeature = int(conf['samples_per_hlfeature'])
-        self.unpredictable_samples = int(conf['unpredictable_samples'])
+        if 'samples_per_hlfeature' in conf:
+            self.samples_per_hlfeature = int(conf['samples_per_hlfeature'])
+        if 'unpredictable_samples' in conf:
+            self.unpredictable_samples = int(conf['unpredictable_samples'])
+        if 'reconstructor_numunits' in conf:
+            self.number_units = int(conf['reconstructor_numunits'])
         self.output_dim = output_dim
 
         self.scope = tf.VariableScope(False, name or type(self).__name__)
@@ -46,12 +50,12 @@ class Reconstructor(object):
 
         with tf.variable_scope(self.scope):
 
-            audiosamples = self.reconstruct(hlfeat, reconstructor_inputs,
+            reconstructed = self.reconstruct(hlfeat, reconstructor_inputs,
                                                 is_training)
 
         self.scope.reuse_variables()
 
-        return audiosamples
+        return reconstructed
 
     @abstractmethod
     def reconstruct(self, hlfeat, reconstructor_inputs, is_training):

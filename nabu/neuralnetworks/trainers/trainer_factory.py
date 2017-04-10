@@ -1,15 +1,20 @@
 '''@file trainer_factory.py
 contains the Trainer factory mehod'''
 
-import cross_entropytrainer
+import cross_entropy_text
 import ctctrainer
-import cross_entropytrainer_rec
+import cross_entropy_audio
 import cross_entr_partly_nonsupervised
+import joint_cost_feature_rec
+import cost_features_rec
+import joint_audio_text
+import joint_features_text
 
 def factory(conf,
             decoder,
             classifier,
             input_dim,
+            reconstruction_dim,
             dispenser,
             val_reader,
             val_targets,
@@ -23,6 +28,7 @@ def factory(conf,
         conf: the trainer config
         decoder: a callable that will create a decoder
         input_dim: the input dimension to the nnnetgraph
+        reconstruction_dim: the dimension of the features we're reconstructing
         num_steps: the total number of steps that will be taken
         dispenser: a Batchdispenser object
         val_reader: a feature reader for the validation data if None
@@ -38,12 +44,20 @@ def factory(conf,
 
     if conf['trainer'] == 'ctc':
         trainer_class = ctctrainer.CTCTrainer
-    elif conf['trainer'] == 'cross_entropy':
-        trainer_class = cross_entropytrainer.CrossEntropyTrainer
-    elif conf['trainer'] == 'cross_entropy_rec':
-        trainer_class = cross_entropytrainer_rec.CrossEntropyTrainerRec
+    elif conf['trainer'] == 'cross_entropy_text':
+        trainer_class = cross_entropy_text.CrossEntropyTrainer
+    elif conf['trainer'] == 'cross_entropy_audio':
+        trainer_class = cross_entropy_audio.CrossEntropyTrainer
+    elif conf['trainer'] == 'cost_features_rec':
+        trainer_class = cost_features_rec.CostFeaturesRec
+    elif conf['trainer'] == 'joint_audio_text':
+        trainer_class = joint_audio_text.JointAudioTextCost
+    elif conf['trainer'] == 'joint_features_text':
+        trainer_class = joint_features_text.JointFeaturesTextCost
     elif conf['trainer'] == 'cross_entropy_partly_nonsupervised':
         trainer_class = cross_entr_partly_nonsupervised.CrossEntropyTrainerNonsupervised
+    elif conf['trainer'] == 'joint_cost_feature_rec':
+        trainer_class = joint_cost_feature_rec.JointCostFeatureRec
     else:
         raise Exception('Undefined trainer type: %s' % conf['trainer'])
 
@@ -51,6 +65,7 @@ def factory(conf,
                          decoder,
                          classifier,
                          input_dim,
+                         reconstruction_dim,
                          dispenser,
                          val_reader,
                          val_targets,

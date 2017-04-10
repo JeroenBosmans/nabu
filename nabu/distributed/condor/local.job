@@ -1,7 +1,6 @@
 # Normal execution
 Universe         = vanilla
 # number of CPUs is equql to the number of parameter servers and workers
-requestCpus      = $(CPUs)
 # need enough RAM to store the parameters
 RequestMemory    = 2G
 #number of GPUs equal to the number of workers
@@ -12,7 +11,7 @@ request_GPUs      = $(GPUs)
 #requirement
 Requirements = (CUDACapability >= 3.0)\
   &&(CUDAGlobalMemoryMb >= $(memory))\
-  &&(machine != "io.esat.kuleuven.be")
+  &&(Machine =!= LastRemoteHost)
 
 
 #Specfy nice user behavior

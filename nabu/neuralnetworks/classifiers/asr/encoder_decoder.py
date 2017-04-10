@@ -36,7 +36,7 @@ class EncoderDecoder(classifier.Classifier):
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
             targets: the targets to the neural network, this is a tuple of
-                [batch_size x max_output_length] tensors. The targets can be
+                [batch_size x max_output_length x dim] tensors. The targets can be
                 used during training
             target_seq_length: The sequence lengths of the target utterances,
                 this is a tuple of [batch_size] vectors

@@ -5,7 +5,7 @@ import tensorflow as tf
 import reconstructor
 from nabu.neuralnetworks.classifiers import layer
 
-class LstmReconstructor(reconstructor.Reconstructor):
+class AudioLstmReconstructor(reconstructor.Reconstructor):
 
     def reconstruct(self, hlfeat, reconstructor_inputs, is_training):
         '''
@@ -15,7 +15,7 @@ class LstmReconstructor(reconstructor.Reconstructor):
             hlfeat: the high level features that came out of the listener
                 [batch_size x max_hl_seq_length x feat_dim]
             reconstructor_inputs: the audio samples that are present as targets
-                in a [batch_size x nbr_audiosamples] tensor
+                in a [batch_size x nbr_audiosamples x 1] tensor
             is_training: boolean that keeps if we are currently training
 
         Returns:
@@ -27,6 +27,12 @@ class LstmReconstructor(reconstructor.Reconstructor):
         batch_size = int(hlfeat.get_shape()[0])
         max_nbr_features = int(hlfeat.get_shape()[1])
         hlf_dim = int(hlfeat.get_shape()[2])
+        max_samples = int(reconstructor_inputs.get_shape()[1])
+
+        #reshape the audio samples to the twodimenstional format and cast them
+        # to integers
+        reconstructor_inputs = tf.reshape(reconstructor_inputs, [batch_size,max_samples])
+        reconstructor_inputs = tf.cast(reconstructor_inputs, tf.int32)
 
         #create the rnn cell for the decoder
         rnn_cell = tf.contrib.rnn.BasicLSTMCell(int(hlfeat.get_shape()[2]))
@@ -43,6 +49,11 @@ class LstmReconstructor(reconstructor.Reconstructor):
 
         # remove the first samples, since the are unpredictable anyway
         reconstructor_inputs = tf.slice(reconstructor_inputs,[0,self.unpredictable_samples],[-1,-1])
+
+        # add a zero in the beginning and remove the last one
+        # this is done instead of working with sos and eos labels
+        reconstructor_inputs = tf.slice(reconstructor_inputs,[0,0],[-1,max_samples-self.unpredictable_samples-1])
+        reconstructor_inputs = tf.concat([tf.zeros([batch_size,1], dtype=tf.int32), reconstructor_inputs],1)
 
         #pad the inputs such that they are of length max_nbr_features*samples_per_hlfeature
         nbr_audio_samples = int(reconstructor_inputs.get_shape()[1])
@@ -63,7 +74,6 @@ class LstmReconstructor(reconstructor.Reconstructor):
 
         #as initial previous inputs, for now we take zero vectors
         last_output = tf.zeros([hlfeat.get_shape()[0],hlfeat.get_shape()[1]])
-
 
         output, _ = tf.contrib.legacy_seq2seq.rnn_decoder(decoder_inputs=inputs,
                         initial_state=(hlfeat,last_output), cell=rnn_cell, scope='rnn_decoder')

@@ -15,12 +15,20 @@ FLAGS = tf.app.flags.FLAGS
 def main(_):
     '''does everything for testing'''
 
-    decoder_cfg_file = 'config/decoder/attention_visualizer.cfg'
+    #decoder_cfg_file = 'config/decoder/attention_visualizer.cfg'
+    decoder_cfg_file = None
 
     #read the database config file
     parsed_database_cfg = configparser.ConfigParser()
     parsed_database_cfg.read(os.path.join(FLAGS.expdir, 'database.cfg'))
     database_cfg = dict(parsed_database_cfg.items('database'))
+
+    if database_cfg['train_mode']=='supervised':
+        nonsupervised = False
+    elif database_cfg['train_mode']=='semisupervised' or database_cfg['train_mode'] == 'nonsupervised':
+        nonsupervised = True
+    else:
+        raise Exception('Wrong kind of training mode')
 
     #read the features config file
     parsed_feat_cfg = configparser.ConfigParser()
@@ -32,12 +40,30 @@ def main(_):
     parsed_nnet_cfg.read(os.path.join(FLAGS.expdir, 'model', 'asr.cfg'))
     nnet_cfg = dict(parsed_nnet_cfg.items('asr'))
 
+    # read the trainer config file
+    parsed_trainer_cfg = configparser.ConfigParser()
+    parsed_trainer_cfg.read(os.path.join(FLAGS.expdir, 'trainer.cfg'))
+    trainer_cfg = dict(parsed_trainer_cfg.items('trainer'))
+
     #read the decoder config file
     if decoder_cfg_file is None:
         decoder_cfg_file = os.path.join(FLAGS.expdir, 'model', 'decoder.cfg')
     parsed_decoder_cfg = configparser.ConfigParser()
     parsed_decoder_cfg.read(decoder_cfg_file)
     decoder_cfg = dict(parsed_decoder_cfg.items('decoder'))
+
+    if nonsupervised:
+        if trainer_cfg['reconstruction_features'] == 'audio_samples':
+            audio_used = True
+        else:
+            audio_used = False
+
+    if nonsupervised:
+        if audio_used:
+            #read the quantization config file if nonsupervised training
+            parsed_quant_cfg = configparser.ConfigParser()
+            parsed_quant_cfg.read(os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
+            quant_cfg = dict(parsed_quant_cfg.items('features'))
 
     #create a feature reader
     featdir = os.path.join(database_cfg['test_dir'], feat_cfg['name'])
@@ -64,11 +90,18 @@ def main(_):
         alphabet = fid.read().split(' ')
     coder = target_coder.TargetCoder(alphabet)
 
-
     #create the classifier
+    if not nonsupervised:
+        outputdim2 = 1
+    else:
+        if audio_used:
+            outputdim2 = int(quant_cfg['quant_levels'])
+        else: #then input features used
+            outputdim2 = input_dim
+
     classifier = asr_factory.factory(
         conf=nnet_cfg,
-        output_dim=coder.num_labels)
+        output_dim=(coder.num_labels, outputdim2))
 
     #create a decoder
     graph = tf.Graph()
@@ -82,6 +115,7 @@ def main(_):
             expdir=FLAGS.expdir)
 
         saver = tf.train.Saver(tf.trainable_variables())
+
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True #pylint: disable=E1101
