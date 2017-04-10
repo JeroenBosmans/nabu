@@ -4,8 +4,6 @@ contains the Trainer factory mehod'''
 import cross_entropy_text
 import ctctrainer
 import cross_entropy_audio
-import cross_entr_partly_nonsupervised
-import joint_cost_feature_rec
 import cost_features_rec
 import joint_audio_text
 import joint_features_text
@@ -54,10 +52,6 @@ def factory(conf,
         trainer_class = joint_audio_text.JointAudioTextCost
     elif conf['trainer'] == 'joint_features_text':
         trainer_class = joint_features_text.JointFeaturesTextCost
-    elif conf['trainer'] == 'cross_entropy_partly_nonsupervised':
-        trainer_class = cross_entr_partly_nonsupervised.CrossEntropyTrainerNonsupervised
-    elif conf['trainer'] == 'joint_cost_feature_rec':
-        trainer_class = joint_cost_feature_rec.JointCostFeatureRec
     else:
         raise Exception('Undefined trainer type: %s' % conf['trainer'])
 
