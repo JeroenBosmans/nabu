@@ -83,7 +83,7 @@ class AttentionVisiualizer(decoder.Decoder):
                     attention_name = (
                         tf.get_default_graph()._name_stack
                         + '/' + type(classifier.decoder).__name__
-                        + '/attention_decoder/attention_decoder/' +
+                        + '/attention_decoder/attention_decoder_1/' +
                         'Attention_0/Softmax:0')
 
                 attention = tf.get_default_graph().get_tensor_by_name(
@@ -141,7 +141,7 @@ class AttentionVisiualizer(decoder.Decoder):
             [[-tf.float32.max]],
             [self.batch_size, int(self.conf['beam_width'])-1])
         scores = tf.concat(
-            1, [tf.zeros([self.batch_size, 1]), negmax])
+            [tf.zeros([self.batch_size, 1]), negmax], 1)
         lengths = tf.ones(
             [self.batch_size, int(self.conf['beam_width'])],
             dtype=tf.int32)
@@ -179,14 +179,14 @@ class AttentionVisiualizer(decoder.Decoder):
 
         with tf.variable_scope('cut_sequences'):
             #get the beam scores
-            scores = [tf.unpack(s) for s in tf.unpack(beam.scores)]
+            scores = [tf.unstack(s) for s in tf.unstack(beam.scores)]
 
             #cut the beam sequences to the correct length and take of
             #the sequence border tokens
-            sequences = [tf.unpack(s) for s in tf.unpack(beam.sequences)]
-            lengths = [tf.unpack(l) for l in tf.unpack(beam.lengths)]
-            attention = [tf.unpack(a) for a in tf.unpack(beam.attention)]
-            hlfeat = tf.unpack(hlfeat)
+            sequences = [tf.unstack(s) for s in tf.unstack(beam.sequences)]
+            lengths = [tf.unstack(l) for l in tf.unstack(beam.lengths)]
+            attention = [tf.unstack(a) for a in tf.unstack(beam.attention)]
+            hlfeat = tf.unstack(hlfeat)
             sequences = [[sequences[i][j][1:lengths[i][j]-1]
                           for j in range(len(lengths[i]))]
                          for i in range(len(lengths))]
@@ -290,9 +290,9 @@ class Beam(namedtuple('Beam', ['sequences', 'lengths', 'states', 'scores',
                 #set the scores of expanded beams from finished elements to
                 #negative maximum [batch_size x beam_width*numlabels]
                 expanded_finished = tf.reshape(tf.concat(
-                    2, [tf.tile([[[False]]], [batch_size, beam_width, 1]),
-                        tf.tile(tf.expand_dims(finished, 2),
-                                [1, 1, numlabels-1])])
+                    [tf.tile([[[False]]], [batch_size, beam_width, 1]),
+                     tf.tile(tf.expand_dims(finished, 2),
+                             [1, 1, numlabels-1])], 2)
                                                , [batch_size, -1])
 
                 scores = tf.where(
@@ -375,7 +375,7 @@ class Beam(namedtuple('Beam', ['sequences', 'lengths', 'states', 'scores',
 
                 #construct the new sequences by adding the selected labels
                 labels = tf.expand_dims(labels, 2)
-                sequences = tf.concat(2, [real, labels, padding])
+                sequences = tf.concat([real, labels, padding], 2)
 
                 #specify the shape of the sequences
                 sequences.set_shape([batch_size, beam_width, max_steps])
@@ -392,7 +392,7 @@ class Beam(namedtuple('Beam', ['sequences', 'lengths', 'states', 'scores',
 
                 #construct the new attention
                 attention = tf.expand_dims(attention, 3)
-                new_attention = tf.concat(3, [real, attention, padding])
+                new_attention = tf.concat([real, attention, padding], 3)
 
                 #specify the shape
                 new_attention.set_shape([batch_size, beam_width, input_length,
