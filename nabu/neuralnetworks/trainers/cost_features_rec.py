@@ -19,8 +19,8 @@ class CostFeaturesRec(trainer.Trainer):
 
         Args:
             targets: a tupple of targets, the first one being a
-                [batch_size, max_target_length] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length]
+                [batch_size x max_target_length] tensor containing the real
+                targets, the second one being a [batch_size x max_audioseq_length x dim]
                 tensor containing the audio samples or other extra information.
             logits: a tuple of  [batch_size, max_logit_length, dim] tensors
                 containing the logits for the text and the audio samples
@@ -36,7 +36,17 @@ class CostFeaturesRec(trainer.Trainer):
 
         with tf.name_scope('cross_entropy_loss'):
 
-            #compute the mean squared variance of the reconstruction
-            loss = tf.nn.l2_loss(targets[1] - logits[1])
+            dim = targets[1].get_shape()[2]
 
-        return loss
+            #compute the mean squared variance of the reconstruction
+            errors = targets[1] - logits[1]
+            errors_squared = errors**2
+
+            errors_list = tf.unstack(errors_squared)
+            total_loss = tf.zeros([])
+            for i, error in enumerate(errors_list):
+                error = error[:target_seq_length[1][i],:]
+                error = tf.reduce_sum(error)/tf.cast((target_seq_length[1][i]*dim), dtype=tf.float32)
+                total_loss = total_loss + error
+
+        return total_loss

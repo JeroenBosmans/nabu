@@ -85,7 +85,18 @@ class JointFeaturesTextCost(trainer.Trainer):
             ## next process reconstruction targets and logits
 
             #compute the mean squared variance of the reconstruction
-            loss_features = tf.nn.l2_loss(targets[1] - logits[1])
+            dim = targets[1].get_shape()[2]
+
+            #compute the mean squared variance of the reconstruction
+            errors = targets[1] - logits[1]
+            errors_squared = errors**2
+
+            errors_list = tf.unstack(errors_squared)
+            loss_features = tf.zeros([])
+            for i, error in enumerate(errors_list):
+                error = error[:target_seq_length[1][i],:]
+                error = tf.reduce_sum(error)/tf.cast((target_seq_length[1][i]*dim), dtype=tf.float32)
+                loss_features = loss_features + error
 
             ## finally combine the two loss functions
 
