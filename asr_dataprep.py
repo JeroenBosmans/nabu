@@ -1,5 +1,5 @@
 '''@file dataprep.py
-this file willdo the datapep for asr training'''
+this file will do the dataprep for asr training'''
 
 import os
 from six.moves import configparser
@@ -12,7 +12,7 @@ database_cfg_file = 'config/asr_databases/TIMIT25p.conf'
 feat_cfg_file = 'config/features/fbank.cfg'
 
 #pointer to the config file for storing of the audio samples
-#only needed when doing nonsupervised training
+#only needed when audio samples should be extracted
 audio_storage_cfg_file = 'config/features/quant_audio_samples.cfg'
 
 #read the database config file
@@ -26,25 +26,22 @@ feat_cfg.read(feat_cfg_file)
 feat_cfg = dict(feat_cfg.items('features'))
 
 #read if what kind of training we are aiming at
-if database_cfg['train_mode'] == 'supervised':
-    nonsupervised = False
-elif database_cfg['train_mode'] == 'nonsupervised' or database_cfg['train_mode'] == 'onlynonsupervised':
-    nonsupervised = True
+if database_cfg['prepare_audio'] == 'True':
+    prepare_audio= True
 else:
-    raise Exception('undefined training mode type: %s' % database_cfg['training_mode'])
+    prepare_audio = False
 
 # read the audio storage config file
-if(nonsupervised):
+if(prepare_audio):
     audiostore_cfg = configparser.ConfigParser()
     audiostore_cfg.read(audio_storage_cfg_file)
     audiostore_cfg = dict(audiostore_cfg.items('features'))
 
-# read the percentage of the labels to keep if nonsupervised
-if(nonsupervised):
-    if 'part_to_keep' in database_cfg:
-        percentage_to_keep = float(database_cfg['part_to_keep'])
-    else:
-        percentage_to_keep = 1.0
+# read the percentage of the labels to keep if that is specified
+if 'part_to_keep' in database_cfg:
+    percentage_to_keep = float(database_cfg['part_to_keep'])
+else:
+    percentage_to_keep = 1.0
 
 #compute the features of the training set for training
 print '------- computing training features ----------'
@@ -119,16 +116,13 @@ with open(sourcefile) as fid:
         utt_id = splitline[0]
         trans = ' '.join(splitline[1:])
         normalized = normalizer(trans)
-        # if only supervised, we always write the result
-        if not nonsupervised:
+
+        # we write the result with a certain prob to simulate partly labeled datasets
+        randomnbr = random.random()
+        if percentage_to_keep>=randomnbr:
             target_fid.write('%s %s\n' % (utt_id, normalized))
-        # if (partly) non supervised, we write the result with a certain prob
         else:
-            randomnbr = random.random()
-            if percentage_to_keep>=randomnbr:
-                target_fid.write('%s %s\n' % (utt_id, normalized))
-            else:
-                target_fid.write('%s %s\n' % (utt_id, ''))
+            target_fid.write('%s %s\n' % (utt_id, ''))
 
 #store the alphabet
 with open(os.path.join(database_cfg['train_dir'], 'alphabet'), 'w') as fid:
@@ -172,8 +166,8 @@ if 'devtext' in database_cfg:
         fid.write(' '.join(normalizer.alphabet))
 
 
-# when non supervised training, we also need the quantized audio samples
-if nonsupervised:
+# when audio is needed, we also need to store the quantized audio samples
+if prepare_audio:
 
     #store the audio samples of the training set
     print '------- computing training audio samples ----------'

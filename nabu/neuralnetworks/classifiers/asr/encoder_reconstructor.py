@@ -9,7 +9,7 @@ from reconstructors import reconstructor_factory
 class EncoderReconstructor(classifier.Classifier):
     '''a general class for an encoder reconstructor system'''
     def __init__(self, conf, output_dim, name=None):
-        '''LAS constructor
+        '''constructor
 
         Args:
             conf: The classifier configuration
@@ -36,9 +36,9 @@ class EncoderReconstructor(classifier.Classifier):
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
             targets: the targets to the neural network, this is a tuple of
-                text_targets [batch_size x max_target_length] tensor and
-                reconstruction targets [batch_size x max_target_length2 x target_dim]
-                tensor.
+                text_targets in a [batch_size x max_target_length] tensor and
+                reconstruction targets in a
+                [batch_size x max_target_length2 x target_dim] tensor.
             target_seq_length: a tuple of [batch_size] tensors that represent the
                 lenghts of the targets
             is_training: whether or not the network is in training mode

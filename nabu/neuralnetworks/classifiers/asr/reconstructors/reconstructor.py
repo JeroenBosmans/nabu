@@ -39,12 +39,12 @@ class Reconstructor(object):
         Args:
             hlfeat: the high level features that came out of the listener
                 [batch_size x max_hl_seq_length x feat_dim]
-            reconstructor_inputs: the audiosamples that we want to predict
-                based high level features in [batch_size x audio_samples] tensor
+            reconstructor_inputs: the features that are used for reconstruction
+                in a [batch_size x max_length x dim] tensor
             is_training: boolean that keeps if we are currently training
 
         Returns:
-            - the output logits of the reconstructed audio samples
+            - the output logits or approx of the reconstructed audio samples
                 [batch_size x number_audio_samples x output_dim] tensor
         '''
 
@@ -60,23 +60,16 @@ class Reconstructor(object):
     @abstractmethod
     def reconstruct(self, hlfeat, reconstructor_inputs, is_training):
         '''
-        Als alles werkt deze comments kopieren van hierboven?
-
-
-        Create the reconstructed audio samples
+        Create the reconstructed features
 
         Args:
             hlfeat: the high level features that came out of the listener
                 [batch_size x max_hl_seq_length x feat_dim]
-            sequence_length: a vector that contains the exact lenght of all
-                of the high level feature vectors.
-            num_quant_levels: the number of quantisation levels in the
-                audiosamples that will be reconstructed
-            samples_per_hlfeature: the number of audiosamples that will be
-                reconstructed with one high level feature
+            reconstructor_inputs: the features that are used for reconstruction
+                in a [batch_size x max_length x dim] tensor
             is_training: boolean that keeps if we are currently training
 
         Returns:
-            - the output logits of the reconstructed audio samples
-                [batch_size x number_audio_samples x num_quant_levels] tensor
+            - the output logits or approx of the reconstructed audio samples
+                [batch_size x number_audio_samples x output_dim] tensor
         '''

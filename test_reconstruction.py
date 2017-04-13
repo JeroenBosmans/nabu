@@ -36,17 +36,16 @@ def main(_):
     parsed_trainer_cfg.read(os.path.join(FLAGS.expdir, 'trainer.cfg'))
     trainer_cfg = dict(parsed_trainer_cfg.items('trainer'))
 
+    # check on what features the reconstruction is made
     if 'reconstruction_features' in trainer_cfg:
-        pass
+        if trainer_cfg['reconstruction_features'] == 'audio_samples':
+            audio_used = True
+        else:
+            audio_used = False
     else:
         raise Exception('There are no reconstruction features specified, something is wrong')
 
-    if trainer_cfg['reconstruction_features'] == 'audio_samples':
-        audio_used = True
-    else:
-        audio_used = False
-
-    #read the quantization config file
+    #read the quantization config file if necessary
     if audio_used:
         parsed_quant_cfg = configparser.ConfigParser()
         parsed_quant_cfg.read(os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
@@ -64,7 +63,7 @@ def main(_):
         utt2spkfile=os.path.join(featdir, 'utt2spk'),
         max_length=max_length_feat)
 
-    #create an audio sample reader
+    #create an audio sample reader if necessary
     if audio_used:
         audiodir = os.path.join(database_cfg['test_dir'], quant_cfg['name'])
 
@@ -171,10 +170,7 @@ def main(_):
             is_training=False)
 
         #compute the loss score
-        if audio_used:
-            score = compute_loss_audio((None, rec_ph), logits, logits_lengths, (None, rec_l_ph))
-        else:
-            score = compute_loss_features((None, rec_ph), logits, logits_lengths, (None, rec_l_ph))
+        score = compute_loss((None, rec_ph), logits, logits_lengths, (None, rec_l_ph), audio_used)
 
         saver = tf.train.Saver(tf.trainable_variables())
 
@@ -247,74 +243,13 @@ def main(_):
     print '========================================'
 
 
-def compute_loss_audio(targets, logits, logit_seq_length,
-                 target_seq_length):
+def compute_loss(targets, logits, logit_seq_length,
+                 target_seq_length, audio_used):
     '''
     Compute the loss
 
-    Creates the operation to compute the cross-entropy loss for every input
-    frame (if you want to have a different loss function, overwrite this
-    method)
-
-    Args:
-        targets: a tupple of targets, the first one being a
-            [batch_size x max_target_length] tensor containing the real
-            targets, the second one being a [batch_size x max_audioseq_length x 1]
-            tensor containing the audio samples or other extra information.
-        logits: a tuple of [batch_size x max_logit_length x dim] tensors,
-            where in this case the second element will contain the actual information
-        logit_seq_length: the length of all the logit sequences as a tuple
-            [batch_size] vectors, where in this case the second element will
-            contain the actual information
-        target_seq_length: the length of all the target sequences as a
-            tupple of two [batch_size] vectors, both for one of the elements
-            in the targets tupple
-
-    Returns:
-        a scalar value containing the loss
-    '''
-
-    with tf.name_scope('cross_entropy_loss'):
-        #extract the logits and the lengths out of the tuple
-        logits = logits[1]
-        logit_seq_length = logit_seq_length[1]
-
-        output_dim = int(logits.get_shape()[2])
-
-        # we know the targets are integers when working with audio samples
-        targets_int = tf.cast(targets[1], tf.int32)
-
-        #put all the targets on top of each other
-        split_targets = tf.unstack(targets_int)
-        for i, target in enumerate(split_targets):
-            #only use the real data
-            split_targets[i] = target[:target_seq_length[1][i]]
-
-        #concatenate the targets
-        nonseq_targets = tf.concat(split_targets,0)
-
-        #convert the logits to non sequential data
-        nonseq_logits = ops.seq2nonseq(logits, logit_seq_length)
-
-        #one hot encode the targets
-        #pylint: disable=E1101
-        nonseq_targets = tf.one_hot(nonseq_targets, output_dim)
-
-        #compute the cross-enthropy loss
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-            logits=nonseq_logits, labels=nonseq_targets))
-
-    return loss
-
-
-def compute_loss_features(targets, logits, logit_seq_length,
-                 target_seq_length):
-    '''
-    Compute the loss
-
-    Creates the operation to compute the cross-entropy loss for every input
-    frame (if you want to have a different loss function, overwrite this
-    method)
+    Creates the operation to compute the loss of the reconstruction that is
+    being done
 
     Args:
         targets: a tupple of targets, the first one being a
@@ -328,18 +263,40 @@ def compute_loss_features(targets, logits, logit_seq_length,
         target_seq_length: the length of all the target sequences as a
             tupple of two [batch_size] vectors, both for one of the elements
             in the targets tupple
+        audio_used: a boolean that tells wether we are dealing with reconstruction
+            based on audio samples or based on the input features
 
     Returns:
         a scalar value containing the loss
     '''
+    print '====================='
+    print audio_used
+    print '====================='
+    if audio_used:
+        # extract audio targets
+        audio_targets = targets[1]
+        # cast them to integers
+        audio_targets = tf.cast(audio_targets, tf.int32)
+        # extract the audio logits
+        audio_logits = logits[1]
+        # extract lenghts
+        logit_lengths = logit_seq_length[1]
+        target_lengths = target_seq_length[1]
 
-    with tf.name_scope('cross_entropy_loss'):
+        # compute the cross entropy
+        loss = ops.cross_entropy_integers_logits(audio_targets, audio_logits,
+                                        logit_lengths, target_lengths)
 
-        #compute the mean squared variance of the reconstruction
-        loss = tf.nn.l2_loss(targets[1] - logits[1])
+    else:
+        #extract targets and approximation and length
+        targets = targets[1]
+        approx = logits[1]
+        lenghts =  target_seq_length[1]
+
+        # compute the mean squared error
+        loss = ops.mse(targets, approx, lenghts)
 
     return loss
-
 
 if __name__ == '__main__':
     tf.app.run()

@@ -33,11 +33,6 @@ def train_asr(clusterfile,
     parsed_database_cfg.read(os.path.join(expdir, 'database.cfg'))
     database_cfg = dict(parsed_database_cfg.items('database'))
 
-    #read the database config file
-    parsed_database_cfg = configparser.ConfigParser()
-    parsed_database_cfg.read(os.path.join(expdir, 'database.cfg'))
-    database_cfg = dict(parsed_database_cfg.items('database'))
-
     #read the features config file
     parsed_feat_cfg = configparser.ConfigParser()
     parsed_feat_cfg.read(os.path.join(expdir, 'model', 'features.cfg'))
@@ -58,14 +53,17 @@ def train_asr(clusterfile,
     parsed_decoder_cfg.read(os.path.join(expdir, 'model', 'decoder.cfg'))
     decoder_cfg = dict(parsed_decoder_cfg.items('decoder'))
 
+    #make distinction between three implemented different kind of training forms
     if database_cfg['train_mode']=='supervised':
         nonsupervised = False
-    elif database_cfg['train_mode']=='nonsupervised' or database_cfg['train_mode']== 'semisupervised':
+    elif database_cfg['train_mode']=='nonsupervised' or\
+            database_cfg['train_mode']== 'semisupervised':
         nonsupervised = True
     else:
         raise Exception('Wrong kind of training mode')
 
-    # check what kind of features we are using for the reconstruction if nonsupervised
+    #when (partly) nonsupervised, what features are used for the reconstruction
+    #currently two possible options implemented
     if nonsupervised:
         if trainer_cfg['reconstruction_features'] == 'audio_samples':
             audio_used = True
@@ -111,7 +109,7 @@ def train_asr(clusterfile,
     if job_name == 'ps':
         server.join()
 
-
+    # path to where the training samples are stored
     featdir = os.path.join(database_cfg['train_dir'], feat_cfg['name'])
 
     #create the coder
@@ -137,8 +135,8 @@ def train_asr(clusterfile,
     textfile = os.path.join(database_cfg['train_dir'], 'targets')
 
 
-    # If nonsupervised and audio used, we also need the samples
-    # these can be read with a second feature reader
+    # If nonsupervised and audio used, we also need to read samples
+    # these can be done with a second feature reader
     if nonsupervised:
         if audio_used:
             featdir2 = os.path.join(database_cfg['train_dir'], quant_cfg['name'])
@@ -152,7 +150,8 @@ def train_asr(clusterfile,
                 utt2spkfile=None,
                 max_length=max_length_audio)
 
-    # create a batch dispenser, depending on which situation we're in
+    ## create a batch dispenser, depending on which situation we're in
+    # in the normal supervised training mode, regular dispenser is needed
     if not nonsupervised:
         dispenser = dispenser = batchdispenser.AsrTextBatchDispenser(
             feature_reader=featreader,
@@ -160,6 +159,7 @@ def train_asr(clusterfile,
             size=int(trainer_cfg['batch_size']),
             target_path=textfile)
     else:
+        # when doing (partly) nonsupervised extra reconstruction features needed
         if audio_used:
             dispenser = batchdispenser.AsrTextAndAudioBatchDispenser(
                 feature_reader = featreader,
@@ -179,6 +179,7 @@ def train_asr(clusterfile,
     # for the validation data. If only nonsupervised, we must validate on the
     # reconstructed features
     if 'dev_data' in database_cfg:
+        # create a reader for the validation inputs
         featdir = database_cfg['dev_dir'] + '/' +  feat_cfg['name']
 
         with open(featdir + '/maxlength', 'r') as fid:
@@ -192,7 +193,7 @@ def train_asr(clusterfile,
 
         textfile = os.path.join(database_cfg['dev_dir'], 'targets')
 
-        #read the validation targets
+        #read the validation text targets
         with open(textfile) as fid:
             lines = fid.readlines()
 

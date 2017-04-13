@@ -14,8 +14,9 @@ class EncoderDecoderReconstructor(classifier.Classifier):
 
         Args:
             conf: The classifier configuration
-            output_dim: the classifier output dimension as a tuple of the dimension
-                of the actual outputs and the dimension of the quantized reconstructed audio samples
+            output_dim: the classifier output dimension as a tuple of the
+                dimension of the actual outputs and the dimension of the
+                quantized reconstructed audio samples
             name: the classifier name
         '''
 
@@ -28,7 +29,8 @@ class EncoderDecoderReconstructor(classifier.Classifier):
         self.decoder = asr_decoder_factory.factory(conf, self.output_dim[0])
 
         #create the reconstructors
-        self.reconstructor = reconstructor_factory.factory(conf, self.output_dim[1])
+        self.reconstructor = reconstructor_factory.factory(conf,
+                                                            self.output_dim[1])
 
     def _get_outputs(self, inputs, input_seq_length, targets=None,
                      target_seq_length=None, is_training=False):
@@ -51,7 +53,8 @@ class EncoderDecoderReconstructor(classifier.Classifier):
 
         Returns:
             A pair containing:
-                - output logits as a tuple of text targets and reconstructed audio samples
+                - output logits as a tuple of text targets and reconstructed
+                        audio samples
                 - the output logits sequence lengths as a tuple of two vectors
         '''
 

@@ -23,10 +23,14 @@ def main(_):
     parsed_database_cfg.read(os.path.join(FLAGS.expdir, 'database.cfg'))
     database_cfg = dict(parsed_database_cfg.items('database'))
 
+    # check the training mode
     if database_cfg['train_mode']=='supervised':
         nonsupervised = False
-    elif database_cfg['train_mode']=='semisupervised' or database_cfg['train_mode'] == 'nonsupervised':
+    elif database_cfg['train_mode']=='semisupervised':
         nonsupervised = True
+    elif database_cfg['train_mode'] == 'nonsupervised':
+        raise Exception('Purely nonsupervised models should be tested with \
+                            the test_reconstruction file.')
     else:
         raise Exception('Wrong kind of training mode')
 
@@ -52,6 +56,8 @@ def main(_):
     parsed_decoder_cfg.read(decoder_cfg_file)
     decoder_cfg = dict(parsed_decoder_cfg.items('decoder'))
 
+    # if (partly) nonsupervised, check what kind reconstruction features used
+    # for now two options are implemented
     if nonsupervised:
         if trainer_cfg['reconstruction_features'] == 'audio_samples':
             audio_used = True
@@ -60,7 +66,7 @@ def main(_):
 
     if nonsupervised:
         if audio_used:
-            #read the quantization config file if nonsupervised training
+            #read the quantization config file if necessary
             parsed_quant_cfg = configparser.ConfigParser()
             parsed_quant_cfg.read(os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
             quant_cfg = dict(parsed_quant_cfg.items('features'))

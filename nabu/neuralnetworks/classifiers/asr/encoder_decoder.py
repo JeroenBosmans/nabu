@@ -44,8 +44,8 @@ class EncoderDecoder(classifier.Classifier):
 
         Returns:
             A pair containing:
-                - output logits
-                - the output logits sequence lengths as a vector
+                - output logits (tuple of two kind of logits)
+                - the output logits sequence lengths as tuple of two vectors
         '''
 
         #add input noise

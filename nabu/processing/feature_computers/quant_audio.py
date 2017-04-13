@@ -7,7 +7,7 @@ from scipy.signal import resample
 
 class Quant_Audio(feature_computer.FeatureComputer):
     ''' a pseudo-feature computer that actually is used to store the audio
-    sampleso of a signal after the quantization with mu-law
+    samples of a signal after quantization with the mu-law
     '''
 
     def comp_feat(self, sig, rate):
@@ -26,16 +26,13 @@ class Quant_Audio(feature_computer.FeatureComputer):
 
         # define the parameters
         num_levels = int(self.conf['quant_levels'])
-        mu = num_levels-1
+        mu = num_levels - 1
         #resample the signal to the rate that is specified in config file
         seconds = float(sig.shape[0])/float(rate)
         new_rate = int(self.conf['quant_rate'])
         new_nbr_elements = int(new_rate*seconds)
         inputs = resample(sig, new_nbr_elements)
         #inputs should first be translated to -1,1 range
-        ####
-        # UPDATE NEEDED: it might be better to divide here by a constant, such that all of the utterances are handled equally?
-        #####
         inputs = inputs / np.max(abs(inputs))
         # mu-law transformation
         transformed = np.sign(inputs)*np.log(1+mu*np.abs(inputs))/np.log(1+mu)
@@ -47,8 +44,8 @@ class Quant_Audio(feature_computer.FeatureComputer):
         return quantized
 
     def get_dim(self):
-        '''the feature dimemsion'''
+        '''the feature dimemsion
+            Simply 1 since we're returning quantized integers
+        '''
 
-        dim = int(self.conf['quant_levels'])
-
-        return dim
+        return 1
