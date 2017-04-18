@@ -269,9 +269,6 @@ def compute_loss(targets, logits, logit_seq_length,
     Returns:
         a scalar value containing the loss
     '''
-    print '====================='
-    print audio_used
-    print '====================='
     if audio_used:
         # extract audio targets
         audio_targets = targets[1]

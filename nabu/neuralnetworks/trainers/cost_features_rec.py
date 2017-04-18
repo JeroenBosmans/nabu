@@ -3,6 +3,7 @@ contains the CrossEnthropyTrainerRec for reconstruction of the audio samples'''
 
 import tensorflow as tf
 import trainer
+from nabu.neuralnetworks import ops
 
 class CostFeaturesRec(trainer.Trainer):
     '''A trainer that minimises the cross-enthropy loss, the output sequences
@@ -36,17 +37,6 @@ class CostFeaturesRec(trainer.Trainer):
 
         with tf.name_scope('cross_entropy_loss'):
 
-            dim = targets[1].get_shape()[2]
-
-            #compute the mean squared variance of the reconstruction
-            errors = targets[1] - logits[1]
-            errors_squared = errors**2
-
-            errors_list = tf.unstack(errors_squared)
-            total_loss = tf.zeros([])
-            for i, error in enumerate(errors_list):
-                error = error[:target_seq_length[1][i],:]
-                error = tf.reduce_sum(error)/tf.cast((target_seq_length[1][i]*dim), dtype=tf.float32)
-                total_loss = total_loss + error
+            total_loss = ops.mse(targets[1], logits[1], target_seq_length[1])
 
         return total_loss

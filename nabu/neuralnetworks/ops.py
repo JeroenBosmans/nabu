@@ -238,6 +238,66 @@ def cross_entropy_integers_logits(targets, logits, logit_seq_length,
 
     return loss
 
+def cross_entropy_integers_logits_with_appending_eos(targets, logits,
+            logit_seq_length, target_seq_length):
+    '''
+    Compute the loss
+
+    This operation can be used to compute the cross entropy between targets that
+    can be represented as integers and logits that respresent logits for these
+    targets where the targets still need to be augmented with a eos label and
+    where the fact that the targets might be empty is taken in consideration
+
+    Args:
+        targets: a tensor of integer targets in a [batch_size x max_length] tensor
+        logits: a tensor of logits in a [batch_size x max_length x dim] tensor
+        logit_seq_length: the length of all the logit sequences as a [batch_size]
+                        tensor
+        target_seq_length: the length of all the target sequences as a [batch_size]
+                        tensor
+
+    Returns:
+        a scalar value containing the loss
+    '''
+
+    with tf.name_scope('cross_entropy_loss'):
+
+        # get the output dimension
+        output_dim = int(logits.get_shape()[2])
+
+        #put all the targets on top of each other
+        split_targets = tf.unstack(targets)
+        for i, target in enumerate(split_targets):
+            #only use the real data
+            split_targets[i] = target[:target_seq_length[i]]
+
+            #append an end of sequence label for the targets where text was
+            #available, and a -1 when there was no text available
+            #This second thing ensures the loss to be zero in this case.
+            empty_target = tf.equal(target_seq_length[i],0)
+            target_appended_eos = tf.concat(
+                            [split_targets[i], [output_dim-1]], 0)
+            target_appended_zero = tf.concat(
+                            [split_targets[i], [-1]], 0)
+            split_targets[i] = tf.where(empty_target,
+                            target_appended_zero, target_appended_eos)
+
+        #concatenate the targets
+        nonseq_targets = tf.concat(split_targets,0)
+
+        #convert the logits to non sequential data
+        nonseq_logits = seq2nonseq(logits, logit_seq_length)
+
+        #one hot encode the targets
+        #pylint: disable=E1101
+        nonseq_targets = tf.one_hot(nonseq_targets, logits.get_shape()[2])
+
+        #compute the cross-enthropy loss
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            logits=nonseq_logits, labels=nonseq_targets))
+
+    return loss
+
 def mse(targets, approx, lengths):
     '''
     Compute the cross entropy between two tensors
@@ -268,3 +328,16 @@ def mse(targets, approx, lengths):
             total_loss = total_loss + error
 
         return total_loss
+
+def append_eos_targets(targets, output_dim):
+    '''
+    A function to append an end of sequence targets to a tensor of targets.
+
+    Args:
+        targets: a [batch_size x max_length] of integer targets
+        output_dim: the output dimension of the corresponding logits to know
+                what the eos symbol should be
+
+    Returns:
+        the targets added with an eos label
+    '''

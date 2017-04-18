@@ -301,16 +301,16 @@ class Trainer(object):
 
         Args:
             targets: a tupple of targets, the first one being a
-                [batch_size, max_target_length x dim] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length x dim]
+                [batch_size, max_target_length] tensor containing the real text
+                targets, the second one being a [batch_size, max_length x dim]
                 tensor containing the reconstruction features.
-            logits: a [batch_size, max_logit_length, dim] tensor containing the
-                logits
-            logit_seq_length: the length of all the logit sequences as a
-                [batch_size] vector
+            logits: a tuple of [batch_size, max_logit_length, dim] tensors
+                containing the logits for the text and the reconstruction
+            logit_seq_length: the length of all the logit sequences as a tuple
+                of [batch_size] vectors
             target_seq_length: the length of all the target sequences as a
-                tupple of two [batch_size] vectors, both for one of the elements
-                in the targets tupple
+                tuple of two [batch_size] vectors, both for one of the elements
+                in the targets tuple
 
         Returns:
             a scalar value containing the total loss
@@ -386,6 +386,7 @@ class Trainer(object):
 
                     #update the model
                     loss, lr = self.update(batch_data, batch_labels, sess)
+
 
                     print(('step %d/%d loss: %f, learning rate: %f, '
                            'time elapsed: %f sec')

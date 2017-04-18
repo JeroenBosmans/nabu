@@ -40,30 +40,12 @@ class CrossEntropyTrainer(trainer.Trainer):
             #extract the logits and the lengths out of the tuple
             logits = logits[1]
             logit_seq_length = logit_seq_length[1]
+            targets = targets[1]
+            target_seq_length = target_seq_length[1]
 
-            output_dim = int(logits.get_shape()[2])
+            targets_int = tf.cast(targets, tf.int32)
 
-            # we know the targets are integers when working with audio samples
-            targets_int = tf.cast(targets[1], tf.int32)
-
-            #put all the targets on top of each other
-            split_targets = tf.unstack(targets_int)
-            for i, target in enumerate(split_targets):
-                #only use the real data
-                split_targets[i] = target[:target_seq_length[1][i]]
-
-            #concatenate the targets
-            nonseq_targets = tf.concat(split_targets,0)
-
-            #convert the logits to non sequential data
-            nonseq_logits = ops.seq2nonseq(logits, logit_seq_length)
-
-            #one hot encode the targets
-            #pylint: disable=E1101
-            nonseq_targets = tf.one_hot(nonseq_targets, output_dim)
-
-            #compute the cross-enthropy loss
-            loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-                logits=nonseq_logits, labels=nonseq_targets))
+            loss = ops.cross_entropy_integers_logits(targets_int, logits,
+                                            logit_seq_length, target_seq_length)
 
         return loss

@@ -26,9 +26,9 @@ def main(_):
 
     #Setup to change quickly between the different typical kind of experiments
     # 0 for nondistr, 1 for condor local
-    comp = 0
+    comp = 1
     # 0 for LAS, 1 for LAR, 2 for LFR, 3 for LASAR, 4 for LASFR
-    experiment = 4
+    experiment = 3
 
 
     #pointers to the config files
@@ -40,7 +40,7 @@ def main(_):
         raise Exception('Wrong kind of computation mode set in run_train')
     if experiment == 0:
         database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
-        classifier_cfg_file = 'config/asr/ULAS.cfg'
+        classifier_cfg_file = 'config/asr/LAS.cfg'
         trainer_cfg_file = 'config/trainer/cross_entropy_text.cfg'
     elif experiment == 1:
         database_cfg_file = 'config/asr_databases/TIMIT1.conf'
@@ -51,11 +51,11 @@ def main(_):
         classifier_cfg_file = 'config/asr/LFR.cfg'
         trainer_cfg_file = 'config/trainer/cost_features_rec.cfg'
     elif experiment == 3:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT2.conf'
         classifier_cfg_file = 'config/asr/LASAR.cfg'
         trainer_cfg_file = 'config/trainer/joint_audio_text.cfg'
     elif experiment == 4:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT50p.conf'
         classifier_cfg_file = 'config/asr/LASFR.cfg'
         trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
     if FLAGS.type == 'asr':
