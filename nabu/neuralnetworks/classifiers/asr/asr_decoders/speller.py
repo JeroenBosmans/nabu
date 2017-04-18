@@ -13,7 +13,6 @@ class Speller(asr_decoder.AsrDecoder):
                is_training):
         '''
         Get the logits and the output state
-
         Args:
             hlfeat: the high level features of shape
                 [batch_size x hl_seq_length x feat_dim]
@@ -23,7 +22,6 @@ class Speller(asr_decoder.AsrDecoder):
                 decoding
             first_step: bool that determines if this is the first step
             is_training: whether or not the network is in training mode
-
         Returns:
             - the output logits of the listener as a
                 [batch_size x target_seq_length x numlabels] tensor
@@ -64,10 +62,8 @@ class Speller(asr_decoder.AsrDecoder):
 
     def create_rnn(self, is_training=False):
         '''created the decoder rnn cell
-
         Args:
             is_training: whether or not the network is in training mode
-
         Returns:
             an rnn cell'''
 
@@ -86,7 +82,6 @@ class Speller(asr_decoder.AsrDecoder):
 
     def zero_state(self, batch_size):
         '''get the listener zero state
-
         Returns:
             an rnn_cell zero state'''
 
@@ -95,14 +90,12 @@ class Speller(asr_decoder.AsrDecoder):
 def loop_function(decoder_inputs, sample_prob, prev, i):
     '''the loop function used in the attention decoder_inputs, used for
     scheduled sampling
-
     Args:
         decoder_inputs: the ground truth labels as a tensor of shape
             [seq_length, batch_size, numlabels] (time_major)
         sample_prob: the probability that the network will sample the output
         prev: the outputs of the previous steps
         i: the current decoding step
-
     returns:
         the input for the nect time step
     '''

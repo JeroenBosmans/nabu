@@ -1,3 +1,4 @@
+
 '''@file lstm_decoder.py
 contains the LstmDecoder class'''
 
@@ -8,7 +9,6 @@ class LstmDecoder(object):
     '''The decoder object used in a LSTM language model'''
     def __init__(self, numlayers, numunits, dropout=1, name=None):
         '''speller constructor
-
         Args:
             numlayers: number of layers in rge rnn
             numunits: number of units in each layer
@@ -27,7 +27,6 @@ class LstmDecoder(object):
                  is_training=False):
         '''
         Create the variables and do the forward computation in training mode
-
         Args:
             encoder_inputs: the one-hot encoded training targets of shape
                 [batch_size x target_seq_length].
@@ -35,7 +34,6 @@ class LstmDecoder(object):
             initial_state: the initial decoder state, could be usefull for
                 decoding
             is_training: whether or not the network is in training mode
-
         Returns:
             - the output logits of the listener as a
                 [batch_size x target_seq_length x numlabels] tensor
@@ -83,10 +81,8 @@ class LstmDecoder(object):
 
     def create_rnn(self, is_training=False):
         '''created the decoder rnn cell
-
         Args:
             is_training: whether or not the network is in training mode
-
         Returns:
             an rnn cell'''
 
@@ -103,10 +99,8 @@ class LstmDecoder(object):
 
     def zero_state(self, batch_size):
         '''get the listener zero state
-
         Args:
             batch_size: the batch size
-
         Returns:
             an rnn_cell zero state'''
 

@@ -22,12 +22,10 @@ class Linear(object):
     def __call__(self, inputs, scope=None):
         '''
         Create the variables and do the forward computation
-
         Args:
             inputs: the input to the layer as a
                 [batch_size x max_length x input_dim] tensor
             scope: the variable scope of the layer
-
         Returns:
             The output of the layer as a
             [batch_size x max_length x output_dim] tensor
@@ -64,7 +62,6 @@ class LSTMLayer(object):
     def __init__(self, num_units):
         """
         lstmLayer constructor
-
         Args:
             num_units: The number of units in the LSTM
         """
@@ -74,14 +71,12 @@ class LSTMLayer(object):
     def __call__(self, inputs, sequence_length, scope=None):
         """
         Create the variables and do the forward computation
-
         Args:
             inputs: the input to the layer as a
                 [batch_size, max_length, dim] tensor
             sequence_length: the length of the input sequences
             scope: The variable scope sets the namespace under which
                       the variables created during this call will be stored.
-
         Returns:
             the output of the layer
         """
@@ -109,7 +104,6 @@ class BLSTMLayer(object):
     def __init__(self, num_units):
         """
         BlstmLayer constructor
-
         Args:
             num_units: The number of units in the LSTM
         """
@@ -119,14 +113,12 @@ class BLSTMLayer(object):
     def __call__(self, inputs, sequence_length, scope=None):
         """
         Create the variables and do the forward computation
-
         Args:
             inputs: the input to the layer as a
                 [batch_size, max_length, dim] tensor
             sequence_length: the length of the input sequences
             scope: The variable scope sets the namespace under which
                       the variables created during this call will be stored.
-
         Returns:
             the output of the layer
         """
@@ -230,7 +222,6 @@ class GatedAConv1d(object):
     '''A gated atrous convolution block'''
     def __init__(self, kernel_size):
         '''constructor
-
         Args:
             kernel_size: size of the filters
         '''
@@ -241,7 +232,6 @@ class GatedAConv1d(object):
                  is_training=False, scope=None):
         '''
         Create the variables and do the forward computation
-
         Args:
             inputs: the input to the layer as a
                 [batch_size, max_length, dim] tensor
@@ -252,7 +242,6 @@ class GatedAConv1d(object):
             is_training: whether or not the network is in training mode
             scope: The variable scope sets the namespace under which
                       the variables created during this call will be stored.
-
         Returns:
             a pair containing:
                 - The residual output
@@ -296,7 +285,6 @@ class Conv1dLayer(object):
 
     def __init__(self, num_units, kernel_size, stride):
         '''constructor
-
         Args:
             num_units: the number of filters
             kernel_size: the size of the filters
@@ -310,7 +298,6 @@ class Conv1dLayer(object):
     def __call__(self, inputs, seq_length, is_training=False, scope=None):
         '''
         Create the variables and do the forward computation
-
         Args:
             inputs: the input to the layer as a
                 [batch_size, max_length, dim] tensor
@@ -318,7 +305,6 @@ class Conv1dLayer(object):
             is_training: whether or not the network is in training mode
             scope: The variable scope sets the namespace under which
                       the variables created during this call will be stored.
-
         Returns:
             the outputs which is a [batch_size, max_length/stride, num_units]
         '''
@@ -353,7 +339,6 @@ class AConv1dLayer(object):
 
     def __init__(self, num_units, kernel_size, dilation_rate):
         '''constructor
-
         Args:
             num_units: the number of filters
             kernel_size: the size of the filters
@@ -368,7 +353,6 @@ class AConv1dLayer(object):
                  is_training=False, scope=None):
         '''
         Create the variables and do the forward computation
-
         Args:
             inputs: the input to the layer as a
                 [batch_size, max_length, dim] tensor
@@ -378,7 +362,6 @@ class AConv1dLayer(object):
             is_training: whether or not the network is in training mode
             scope: The variable scope sets the namespace under which
                 the variables created during this call will be stored.
-
         Returns:
             the outputs which is a [batch_size, max_length/stride, num_units]
         '''
