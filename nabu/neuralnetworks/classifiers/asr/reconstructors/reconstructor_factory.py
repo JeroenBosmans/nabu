@@ -14,12 +14,17 @@ def factory(conf, output_dim):
         A reconstructor object'''
 
     if conf['reconstructor'] == 'lstm_feature_reconstructor':
-        return lstm_feature_reconstructor.LstmFeatureReconstructor(conf, output_dim)
+        return lstm_feature_reconstructor.LstmFeatureReconstructor(
+            conf, output_dim)
     if conf['reconstructor'] == 'lstm_feature_reconstructor_expanded':
-        return lstm_feature_reconstructor_expanded.LstmFeatureReconstructor(conf, output_dim)
+        return lstm_feature_reconstructor_expanded.LstmFeatureReconstructor(
+            conf, output_dim)
     elif conf['reconstructor'] == 'audio_lstm_reconstructor':
-        return audio_lstm_reconstructor.AudioLstmReconstructor(conf, output_dim)
+        return audio_lstm_reconstructor.AudioLstmReconstructor(
+            conf, output_dim)
     elif conf['reconstructor'] == 'audio_lstm_reconstructor_expanded':
-        return audio_lstm_reconstructor_expanded.AudioLstmReconstructor(conf, output_dim)
+        return audio_lstm_reconstructor_expanded.AudioLstmReconstructor(
+            conf, output_dim)
     else:
-        raise Exception('undefined asr reconstructor type: %s' % conf['reconstructor'])
+        raise Exception(
+            'undefined asr reconstructor type: %s' % conf['reconstructor'])

@@ -2,7 +2,7 @@
 contains the LmConfidenceDecoder'''
 
 import tensorflow as tf
-import decoder
+from nabu.neuralnetworks.decoders import decoder
 
 class LmConfidenceDecoder(decoder.Decoder):
     '''a decoder that will be used to evaluate the language model, it will

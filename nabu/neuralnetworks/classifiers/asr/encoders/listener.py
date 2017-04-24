@@ -2,7 +2,7 @@
 contains the listener code'''
 
 import tensorflow as tf
-import encoder
+from nabu.neuralnetworks.classifiers.asr.encoders import encoder
 from nabu.neuralnetworks.classifiers import layer
 
 class Listener(encoder.Encoder):
@@ -63,4 +63,3 @@ class Listener(encoder.Encoder):
                                     float(self.conf['listener_dropout']))
 
         return outputs
-

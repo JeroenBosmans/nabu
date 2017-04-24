@@ -2,9 +2,9 @@
 contains the fbank feature computer'''
 
 import numpy as np
-import base
-import feature_computer
-from sigproc import snip
+from nabu.processing.feature_computers import base
+from nabu.processing.feature_computers import feature_computer
+from nabu.processing.feature_computers.sigproc import snip
 
 class Mfcc(feature_computer.FeatureComputer):
     '''the feature computer class to compute MFCC features'''

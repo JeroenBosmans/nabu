@@ -3,8 +3,9 @@ contains a general encoder_reconstructor network'''
 
 import tensorflow as tf
 from nabu.neuralnetworks.classifiers import classifier
-from encoders import encoder_factory
-from reconstructors import reconstructor_factory
+from nabu.neuralnetworks.classifiers.asr.encoders import encoder_factory
+from nabu.neuralnetworks.classifiers.asr.reconstructors \
+    import reconstructor_factory
 
 class EncoderReconstructor(classifier.Classifier):
     '''a general class for an encoder reconstructor system'''
@@ -23,7 +24,8 @@ class EncoderReconstructor(classifier.Classifier):
         self.encoder = encoder_factory.factory(conf)
 
         #create the reconstructor
-        self.reconstructor = reconstructor_factory.factory(conf, self.output_dim)
+        self.reconstructor = reconstructor_factory.factory(conf,
+                                                           self.output_dim)
 
     def _get_outputs(self, inputs, input_seq_length, targets=None,
                      target_seq_length=None, is_training=False):
@@ -39,8 +41,8 @@ class EncoderReconstructor(classifier.Classifier):
                 text_targets in a [batch_size x max_target_length] tensor and
                 reconstruction targets in a
                 [batch_size x max_target_length2 x target_dim] tensor.
-            target_seq_length: a tuple of [batch_size] tensors that represent the
-                lenghts of the targets
+            target_seq_length: a tuple of [batch_size] tensors that represent
+                the lenghts of the targets
             is_training: whether or not the network is in training mode
 
         Returns:

@@ -2,7 +2,7 @@
 contains the CrossEnthropyTrainerRec for reconstruction of the audio samples'''
 
 import tensorflow as tf
-import trainer
+from nabu.neuralnetworks.trainers import trainer
 from nabu.neuralnetworks import ops
 
 class JointFeaturesTextCost(trainer.Trainer):
@@ -21,12 +21,12 @@ class JointFeaturesTextCost(trainer.Trainer):
         Args:
             targets: a tupple of targets, the first one being a
                 [batch_size, max_target_length] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length]
+                targets, the second one being [batch_size, max_audioseq_length]
                 tensor containing the audio samples or other extra information.
             logits: a tuple of  [batch_size, max_logit_length, dim] tensors
                 containing the logits for the text and the audio samples
-            logit_seq_length: the length of all the logit sequences as a tuple of
-                [batch_size] vectors
+            logit_seq_length: the length of all the logit sequences as a tuple
+                of [batch_size] vectors
             target_seq_length: the length of all the target sequences as a
                 tupple of two [batch_size] vectors, both for one of the elements
                 in the targets tupple
@@ -46,8 +46,8 @@ class JointFeaturesTextCost(trainer.Trainer):
             text_target_seq_length = target_seq_length[0]
 
             loss_text = ops.cross_entropy_integers_logits_with_appending_eos(
-                                text_targets, text_logits,
-                                text_logit_seq_length,text_target_seq_length)
+                text_targets, text_logits,
+                text_logit_seq_length, text_target_seq_length)
 
             ## next process reconstruction targets and logits
 
@@ -63,8 +63,9 @@ class JointFeaturesTextCost(trainer.Trainer):
 
             # get the tradeoff parameters
             tradeoff = float(self.conf['loss_trade_off'])
-            if tradeoff<0 or tradeoff>1:
-                raise Exception('Trade off parameter for the loss function should be between 0 and 1')
+            if tradeoff < 0 or tradeoff > 1:
+                raise Exception('Trade off parameter for the loss function \
+                    should be between 0 and 1')
 
             # make a combination of the two loss functions
             loss = tradeoff*loss_text + (1-tradeoff)*loss_features

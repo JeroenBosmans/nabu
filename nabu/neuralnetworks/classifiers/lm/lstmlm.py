@@ -3,7 +3,7 @@ contains the LstmLm class'''
 
 import tensorflow as tf
 from nabu.neuralnetworks.classifiers import classifier
-import lm_decoders
+from nabu.neuralnetworks.classifiers.lm import lm_decoders
 
 class LstmLm(classifier.Classifier):
     '''a LSTM language model'''

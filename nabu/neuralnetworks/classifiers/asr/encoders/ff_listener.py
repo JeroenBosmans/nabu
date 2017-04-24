@@ -2,7 +2,7 @@
 contains the FfListener class'''
 
 import tensorflow as tf
-import encoder
+from nabu.neuralnetworks.classifiers.asr.encoders import encoder
 from nabu.neuralnetworks.classifiers import layer
 from nabu.neuralnetworks.ops import pyramid_stack
 

@@ -3,9 +3,10 @@ contains de LAS class'''
 
 import tensorflow as tf
 from nabu.neuralnetworks.classifiers import classifier
-from encoders import encoder_factory
-from asr_decoders import asr_decoder_factory
-from reconstructors import reconstructor_factory
+from nabu.neuralnetworks.classifiers.asr.encoders import encoder_factory
+from nabu.neuralnetworks.classifiers.asr.asr_decoders import asr_decoder_factory
+from nabu.neuralnetworks.classifiers.asr.reconstructors \
+    import reconstructor_factory
 
 class EncoderDecoderReconstructor(classifier.Classifier):
     '''a general class for an encoder decoder reconstructor system'''
@@ -20,7 +21,8 @@ class EncoderDecoderReconstructor(classifier.Classifier):
             name: the classifier name
         '''
 
-        super(EncoderDecoderReconstructor, self).__init__(conf, output_dim, name)
+        super(EncoderDecoderReconstructor, self).__init__(
+            conf, output_dim, name)
 
         #create the listener
         self.encoder = encoder_factory.factory(conf)
@@ -30,7 +32,7 @@ class EncoderDecoderReconstructor(classifier.Classifier):
 
         #create the reconstructors
         self.reconstructor = reconstructor_factory.factory(conf,
-                                                            self.output_dim[1])
+                                                           self.output_dim[1])
 
     def _get_outputs(self, inputs, input_seq_length, targets=None,
                      target_seq_length=None, is_training=False):
@@ -78,7 +80,7 @@ class EncoderDecoderReconstructor(classifier.Classifier):
         s_labels = tf.constant(self.output_dim[0]-1,
                                dtype=tf.int32,
                                shape=[batch_size, 1])
-        encoder_inputs = tf.concat([s_labels, targets[0]],1)
+        encoder_inputs = tf.concat([s_labels, targets[0]], 1)
 
         #compute the output logits
         text_logits, _ = self.decoder(
@@ -96,6 +98,6 @@ class EncoderDecoderReconstructor(classifier.Classifier):
 
         #assemble two kind of logits and lengths in tuples
         logits = (text_logits, audio_logits)
-        logits_lengths = (target_seq_length[0]+1,target_seq_length[1])
+        logits_lengths = (target_seq_length[0]+1, target_seq_length[1])
 
         return logits, logits_lengths

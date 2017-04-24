@@ -3,8 +3,8 @@ contains de LAS class'''
 
 import tensorflow as tf
 from nabu.neuralnetworks.classifiers import classifier
-from encoders import encoder_factory
-from asr_decoders import asr_decoder_factory
+from nabu.neuralnetworks.classifiers.asr.encoders import encoder_factory
+from nabu.neuralnetworks.classifiers.asr.asr_decoders import asr_decoder_factory
 
 class EncoderDecoder(classifier.Classifier):
     '''a general class for an encoder decoder system'''
@@ -36,8 +36,8 @@ class EncoderDecoder(classifier.Classifier):
             input_seq_length: The sequence lengths of the input utterances, this
                 is a [batch_size] vector
             targets: the targets to the neural network, this is a tuple of
-                [batch_size x max_output_length x dim] tensors. The targets can be
-                used during training
+                [batch_size x max_output_length x dim] tensors. The targets can
+                be used during training
             target_seq_length: The sequence lengths of the target utterances,
                 this is a tuple of [batch_size] vectors
             is_training: whether or not the network is in training mode

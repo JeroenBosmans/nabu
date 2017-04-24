@@ -1,10 +1,10 @@
 '''@file decoder_factory.py
 contains the decoder factory'''
 
-import ctc_decoder
-import beam_search_decoder
-import attention_visualizer
-import lm_confidence_decoder
+from nabu.neuralnetworks.decoders import ctc_decoder
+from nabu.neuralnetworks.decoders import beam_search_decoder
+from nabu.neuralnetworks.decoders import attention_visualizer
+from nabu.neuralnetworks.decoders import lm_confidence_decoder
 
 def factory(conf,
             classifier,

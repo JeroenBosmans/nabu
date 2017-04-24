@@ -6,7 +6,7 @@
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 import copy
-import text_reader
+from nabu.processing import text_reader
 import numpy as np
 
 ## Class that dispenses batches of data for mini-batch training
@@ -175,19 +175,20 @@ class AsrTextBatchDispenser(BatchDispenser):
         if utt_id in self.target_dict and self.target_dict[utt_id] != '':
             texttargets = self.target_coder.encode(self.target_dict[utt_id])
         else:
-            # when doing supervised training on a dataset where a lot of the
-            # utterances have no labels, we cant do anything with these utterances
+        # when doing supervised training on a dataset where a lot of the
+        # utterances have no labels, we cant do anything with these utterances
     #        print 'WARNING no targets for %s' % utt_id
             texttargets = None
             inputs = None
 
-        return inputs, (texttargets, np.zeros([1,1]))
+        return inputs, (texttargets, np.zeros([1, 1]))
 
     @property
     def num_utt(self):
         '''The number of utterances in the given data
         (returns only the one where text targets are available)'''
-        utterances_with_text_targets = [utt for utt in self.target_dict if self.target_dict[utt] != '']
+        utterances_with_text_targets = [utt for utt in self.target_dict\
+                                        if self.target_dict[utt] != '']
         return len(utterances_with_text_targets)
 
     @property
@@ -206,8 +207,8 @@ class AsrTextBatchDispenser(BatchDispenser):
     def max_target_length(self):
         '''the maximal length of the targets'''
         part1 = max([len(targets.split(' '))
-                    for targets in self.target_dict.values()])
-        return(part1,1)
+                     for targets in self.target_dict.values()])
+        return(part1, 1)
 
 
     @property
@@ -271,7 +272,7 @@ class LmBatchDispenser(BatchDispenser):
 
         _, targets, _ = self.textreader.get_utt()
 
-        return targets, (targets[:, 0],np.zeros(1))
+        return targets, (targets[:, 0], np.zeros(1))
 
     @property
     def num_labels(self):
@@ -289,7 +290,7 @@ class LmBatchDispenser(BatchDispenser):
     def max_target_length(self):
         '''the maximal length of the targets'''
 
-        return (self.textreader.max_length,1)
+        return (self.textreader.max_length, 1)
 
     @property
     def num_utt(self):
@@ -313,7 +314,8 @@ class AsrTextAndAudioBatchDispenser(BatchDispenser):
     '''a batch dispenser, used for ASR training, when working with
     (partly) non-supervised data and audio samples'''
 
-    def __init__(self, feature_reader, audio_reader, target_coder, size, target_path):
+    def __init__(self, feature_reader, audio_reader, target_coder, size,
+                 target_path):
         '''
         batchDispenser constructor
 
@@ -381,12 +383,12 @@ class AsrTextAndAudioBatchDispenser(BatchDispenser):
             # normally the unlabeled data is simply encoded with '' as targets
             text_targets = self.target_coder.encode(self.target_dict[utt_id])
         else:
-            #When something went wrong, we can still simply take empty string as target
+            #When something wrong, simply take empty string as target
             text_targets = self.target_coder.encode('')
 
         audio_samples = self.audio_reader.get_utt_with_id(utt_id)
 
-        # the targets should now be a pair of the real targets and the audio samples
+        # the targets should be a pair of the real targets and the audio samples
         targets = (text_targets, audio_samples)
 
         return inputs, targets
@@ -413,7 +415,7 @@ class AsrTextAndAudioBatchDispenser(BatchDispenser):
     def max_target_length(self):
         '''the maximal length of the targets'''
         part1 = max([len(targets.split(' '))
-                    for targets in self.target_dict.values()])
+                     for targets in self.target_dict.values()])
         part2 = self.audio_reader.max_length
         return(part1, part2)
 
@@ -498,10 +500,10 @@ class AsrTextAndFeatureBatchDispenser(BatchDispenser):
             # normally the unlabeled data is simply encoded with '' as targets
             text_targets = self.target_coder.encode(self.target_dict[utt_id])
         else:
-            #When something went wrong, we can still simply take empty string as target
+            #When something wrong, simply take empty string as target
             text_targets = self.target_coder.encode('')
 
-        # the targets should now be a pair of the real targets and the feature inputs
+        # targets should be a pair of the real targets and feature inputs
         targets = (text_targets, inputs)
 
         return inputs, targets
@@ -528,7 +530,7 @@ class AsrTextAndFeatureBatchDispenser(BatchDispenser):
     def max_target_length(self):
         '''the maximal length of the targets'''
         part1 = max([len(targets.split(' '))
-                    for targets in self.target_dict.values()])
+                     for targets in self.target_dict.values()])
         part2 = self.feature_reader.max_length
         return(part1, part2)
 

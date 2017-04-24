@@ -1,7 +1,7 @@
 '''@file timit.py
 contains the timit target normalizer'''
 
-import normalizer
+from nabu.processing.target_normalizers import normalizer
 
 class Timit(normalizer.Normalizer):
     '''the timit 39 folded phonemes normalizer'''

@@ -2,8 +2,8 @@
 Contains the normalizer factory
 '''
 
-import aurora4
-import timit
+from nabu.processing.target_normalizers import aurora4
+from nabu.processing.target_normalizers import timit
 
 def factory(normalizer_type):
     '''create a normalizer_type

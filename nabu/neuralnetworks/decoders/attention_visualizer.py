@@ -4,7 +4,7 @@ contains the BeamSearchDecoder'''
 from collections import namedtuple
 import tensorflow as tf
 from tensorflow.python.util import nest
-import decoder
+from nabu.neuralnetworks.decoders import decoder
 from nabu.processing import score
 
 class AttentionVisiualizer(decoder.Decoder):

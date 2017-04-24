@@ -54,7 +54,8 @@ class Trainer(object):
         cluster = tf.train.ClusterSpec(server.server_def.cluster)
 
         #save the max lengths
-        self.max_target_length1, self.max_target_length2 = dispenser.max_target_length
+        self.max_target_length1, self.max_target_length2 =\
+            dispenser.max_target_length
         self.max_input_length = dispenser.max_input_length
 
         #create the graph
@@ -89,10 +90,12 @@ class Trainer(object):
                     shape=[dispenser.size, self.max_target_length1],
                     name='targets1')
 
-                #the second part of the tupple of targets (audio samples or input features)
+                #second part of the tupple of targets
+                #(audio samples or input features)
                 targets2 = tf.placeholder(
                     dtype=tf.float32,
-                    shape=[dispenser.size, self.max_target_length2, reconstruction_dim],
+                    shape=[dispenser.size, self.max_target_length2,
+                           reconstruction_dim],
                     name='targets2')
 
                 # the targets are passed together as a tupple
@@ -104,20 +107,21 @@ class Trainer(object):
                     shape=[dispenser.size],
                     name='input_seq_length')
 
-                #the length of all the output sequences (first from target tupple)
+                #length of all the output sequences (first from target tuple)
                 target_seq_length1 = tf.placeholder(
                     dtype=tf.int32,
                     shape=[dispenser.size],
                     name='output_seq_length1')
 
-                # the length of the sequences of the second element of target tupple
+                #length of the sequences of the second element of target tuple
                 target_seq_length2 = tf.placeholder(
                     dtype=tf.int32,
                     shape=[dispenser.size],
                     name='output_seq_length2')
 
                 # last two placeholders are passed together as one argument
-                self.target_seq_length = (target_seq_length1, target_seq_length2)
+                self.target_seq_length = \
+                    (target_seq_length1, target_seq_length2)
 
                 #a placeholder to set the position
                 self.pos_in = tf.placeholder(
@@ -239,7 +243,8 @@ class Trainer(object):
                                           * learning_rate_fact)
 
                     #create the optimizer
-                    optimizer = tf.train.AdamOptimizer(self.learning_rate)
+                    optimizer = tf.train.GradientDescentOptimizer(
+                        self.learning_rate)
 
                     #create an optimizer that aggregates gradients
                     if int(conf['numbatches_to_aggregate']) > 0:
@@ -262,7 +267,6 @@ class Trainer(object):
                         #clip the gradients
                         grads = [(tf.clip_by_value(grad, -1., 1.), var)
                                  for grad, var in grads]
-
 
                     #opperation to apply the gradients
                     apply_gradients_op = optimizer.apply_gradients(
@@ -406,8 +410,9 @@ class Trainer(object):
             inputs: the inputs to the neural net, this should be a list
                 containing an NxF matrix for each utterance in the batch where
                 N is the number of frames in the utterance
-            targets: the targets for neural net, this should be a list of tuples,
-                each tuple containing two N-dimensional vectors for one utterance
+            targets: the targets for neural net, should be a list of tuples,
+                each tuple containing two N-dimensional vectors for one
+                utterance
             sess: the session
 
         Returns:
@@ -500,7 +505,8 @@ class Trainer(object):
         looped = False
         avrg_loss = 0.0
         total_elements = 0
-        total_steps = int(np.ceil(float(reader.num_utt)/float(self.dispenser.size)))
+        total_steps = int(np.ceil(float(reader.num_utt)/\
+            float(self.dispenser.size)))
         step = 1
 
         while not looped:
@@ -525,7 +531,7 @@ class Trainer(object):
             rec_dim = labels[0][1].shape[1]
             inputs += [np.zeros([0, feat_dim])]*(
                 self.dispenser.size-len(inputs))
-            labels += [np.zeros([0]), np.zeros([0,rec_dim])]*(
+            labels += [np.zeros([0]), np.zeros([0, rec_dim])]*(
                 self.dispenser.size-len(labels))
 
             #get the sequence length
@@ -538,10 +544,11 @@ class Trainer(object):
                                inp.shape[1]]), 0) for inp in inputs])
             label_tensor1 = np.array([np.append(
                 lab[0], np.zeros([self.max_target_length1-lab[0].shape[0]]), 0)
-                                     for lab in labels])
+                                      for lab in labels])
             label_tensor2 = np.array([np.append(
-                lab[1], np.zeros([self.max_target_length2-lab[1].shape[0], lab[1].shape[1]]), 0)
-                                     for lab in labels])
+                lab[1], np.zeros([self.max_target_length2-lab[1].shape[0],
+                                  lab[1].shape[1]]), 0)
+                                      for lab in labels])
             print 'Doing validation, step %d/%d' %(step, total_steps)
 
             loss = sess.run(
@@ -557,7 +564,7 @@ class Trainer(object):
                          (num_elements + total_elements))
             total_elements += num_elements
 
-            step=step+1
+            step = step+1
 
         return avrg_loss
 

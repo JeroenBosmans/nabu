@@ -1,7 +1,7 @@
 '''@file aurora4.py
 contains the timit target normalizer'''
 
-import normalizer
+from nabu.processing.target_normalizers import normalizer
 
 class Aurora4(normalizer.Normalizer):
     '''normalize for the Aurora 4 database'''

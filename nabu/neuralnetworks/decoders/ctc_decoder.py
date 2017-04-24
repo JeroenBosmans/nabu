@@ -2,7 +2,7 @@
 contains the CTCDecoder'''
 
 import tensorflow as tf
-import decoder
+from nabu.neuralnetworks.decoders import decoder
 from nabu.processing import score
 
 class CTCDecoder(decoder.Decoder):
@@ -64,6 +64,6 @@ class CTCDecoder(decoder.Decoder):
 
         #decode the targets
         decoded_targets = {utt:self.coder.decode(targets[utt])
-                                for utt in targets}
+                           for utt in targets}
 
         return score.cer(outputs, decoded_targets)

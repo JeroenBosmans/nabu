@@ -2,7 +2,7 @@
 contains the CrossEnthropyTrainer'''
 
 import tensorflow as tf
-import trainer
+from nabu.neuralnetworks.trainers import trainer
 from nabu.neuralnetworks import ops
 
 class CrossEntropyTrainer(trainer.Trainer):
@@ -43,9 +43,7 @@ class CrossEntropyTrainer(trainer.Trainer):
             targets = targets[0]
             target_seq_length = target_seq_length[0]
 
-            output_dim = int(logits.get_shape()[2])
-
             loss = ops.cross_entropy_integers_logits_with_appending_eos(
-                    targets, logits, logit_seq_length, target_seq_length)
+                targets, logits, logit_seq_length, target_seq_length)
 
-        return (loss, empty_targets)
+        return loss

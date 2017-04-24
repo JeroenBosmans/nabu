@@ -2,13 +2,12 @@
 this file will do the dataprep for asr training'''
 
 import os
-import random
 from six.moves import configparser
 from nabu.processing import ark, prepare_data
 from nabu.processing.target_normalizers import normalizer_factory
 
 #pointers to the config files
-database_cfg_file = 'config/asr_databases/TIMIT50p.conf'
+database_cfg_file = 'config/asr_databases/TIMIT50p_ordered.conf'
 feat_cfg_file = 'config/features/fbank.cfg'
 
 #pointer to the config file for storing of the audio samples
@@ -109,20 +108,32 @@ print '------- normalizing training targets -----------'
 sourcefile = database_cfg['traintext']
 target_fid = open(os.path.join(database_cfg['train_dir'], 'targets'), 'w')
 
+#look for the total number of examples
+num_train_examples = sum(1 for line in open(sourcefile))
+num_to_keep = percentage_to_keep * num_train_examples
+
 #read the textfile line by line, normalize and write in target file
 with open(sourcefile) as fid:
+
+    target_dict = dict()
+
     for line in fid.readlines():
         splitline = line.strip().split(' ')
         utt_id = splitline[0]
         trans = ' '.join(splitline[1:])
         normalized = normalizer(trans)
+        target_dict[utt_id] = normalized
 
-        #write the result with a certain prob to simulate semi labeled datasets
-        randomnbr = random.random()
-        if percentage_to_keep >= randomnbr:
-            target_fid.write('%s %s\n' % (utt_id, normalized))
-        else:
-            target_fid.write('%s %s\n' % (utt_id, ''))
+# keep only part of the targets and replace the rest by an empty string
+reader = ark.ArkReader(os.path.join(database_cfg['train_dir'],
+                                    feat_cfg['name'], 'feats_shuffled.scp'))
+
+for i in range(num_train_examples):
+    utt_id, _, _ = reader.read_next_utt()
+    if i < (num_train_examples - num_to_keep):
+        target_fid.write('%s %s\n' % (utt_id, ''))
+    else:
+        target_fid.write('%s %s\n' % (utt_id, target_dict[utt_id]))
 
 #store the alphabet
 with open(os.path.join(database_cfg['train_dir'], 'alphabet'), 'w') as fid:

@@ -2,7 +2,7 @@
 contains the CrossEnthropyTrainerRec for reconstruction of the audio samples'''
 
 import tensorflow as tf
-import trainer
+from nabu.neuralnetworks.trainers import trainer
 from nabu.neuralnetworks import ops
 
 class CrossEntropyTrainer(trainer.Trainer):
@@ -21,10 +21,12 @@ class CrossEntropyTrainer(trainer.Trainer):
         Args:
             targets: a tupple of targets, the first one being a
                 [batch_size x max_target_length] tensor containing the real
-                targets, the second one being a [batch_size x max_audioseq_length x 1]
-                tensor containing the audio samples or other extra information.
+                targets, the second one being a
+                [batch_size x max_audioseq_length x 1] tensor containing the
+                audio samples or other extra information.
             logits: a tuple of [batch_size x max_logit_length x dim] tensors,
-                where in this case the second element will contain the actual information
+                where in this case the second element will contain the actual
+                information
             logit_seq_length: the length of all the logit sequences as a tuple
                 [batch_size] vectors, where in this case the second element will
                 contain the actual information
@@ -45,7 +47,7 @@ class CrossEntropyTrainer(trainer.Trainer):
 
             targets_int = tf.cast(targets, tf.int32)
 
-            loss = ops.cross_entropy_integers_logits(targets_int, logits,
-                                            logit_seq_length, target_seq_length)
+            loss = ops.cross_entropy_integers_logits(
+                targets_int, logits, logit_seq_length, target_seq_length)
 
         return loss

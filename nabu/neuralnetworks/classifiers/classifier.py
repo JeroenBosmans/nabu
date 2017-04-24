@@ -23,22 +23,27 @@ class Classifier(object):
 
         # if there is only a add_labels in the config, we suppose that only the
         # first element of this tuple is important
-        if('add_labels' in conf):
+        if 'add_labels' in conf:
             self.output_dim = output_dim[0] + int(conf['add_labels'])
 
         # if there is only an add_labels_reconstruction but not an
-        # add_labels_prediction in config, assume only second element to be of importance
-        elif('add_labels_reconstruction' in conf and not 'add_labels_prediction' in conf):
-            self.output_dim = output_dim[1] + int(conf['add_labels_reconstruction'])
+        # add_labels_prediction in config, assume only second element to be of
+        # importance
+        elif 'add_labels_reconstruction' in conf and \
+            not 'add_labels_prediction' in conf:
+            self.output_dim = output_dim[1] + int(
+                conf['add_labels_reconstruction'])
 
         # if both present, both elements of the tuple will be of importance
-        elif('add_labels_reconstruction' in conf and 'add_labels_prediction' in conf):
+        elif 'add_labels_reconstruction' in conf and \
+            'add_labels_prediction' in conf:
             outdim1 = output_dim[0] + int(conf['add_labels_prediction'])
             outdim2 = output_dim[1] + int(conf['add_labels_reconstruction'])
             self.output_dim = (outdim1, outdim2)
 
         else:
-            raise Exception('Wrong kind of add_labels information in the config')
+            raise Exception(
+                'Wrong kind of add_labels information in the config')
 
         #create the variable scope for the classifier
         self.scope = tf.VariableScope(False, name or type(self).__name__)
@@ -55,7 +60,7 @@ class Classifier(object):
                 is a [batch_size] vector
             targets: a tupple of targets, the first one being a
                 [batch_size, max_target_length] tensor containing the real
-                targets, the second one being a [batch_size, max_audioseq_length]
+                targets, the second one being [batch_size, max_audioseq_length]
                 tensor containing the audio samples or other extra information.
             target_seq_length: the length of all the target sequences as a
                 tupple of two [batch_size] vectors, both for one of the elements

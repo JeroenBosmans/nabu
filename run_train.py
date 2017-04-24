@@ -26,21 +26,21 @@ def main(_):
 
     #Setup to change quickly between the different typical kind of experiments
     # 0 for nondistr, 1 for condor local
-    comp = 0
+    comp = 1
     # 0 for LAS, 1 for LAR, 2 for LFR, 3 for LASAR, 4 for LASFR
-    experiment = 3
+    experiment = 0
 
 
     #pointers to the config files
-    if comp==0:
+    if comp == 0:
         computing_cfg_file = 'config/computing/non_distributed.cfg'
-    elif comp==1:
+    elif comp == 1:
         computing_cfg_file = 'config/computing/condor_local.cfg'
     else:
         raise Exception('Wrong kind of computation mode set in run_train')
     if experiment == 0:
         database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
-        classifier_cfg_file = 'config/asr/ULAS.cfg'
+        classifier_cfg_file = 'config/asr/LAS.cfg'
         trainer_cfg_file = 'config/trainer/cross_entropy_text.cfg'
     elif experiment == 1:
         database_cfg_file = 'config/asr_databases/TIMIT1.conf'
@@ -56,6 +56,10 @@ def main(_):
         trainer_cfg_file = 'config/trainer/joint_audio_text.cfg'
     elif experiment == 4:
         database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        classifier_cfg_file = 'config/asr/LASFR.cfg'
+        trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
+    elif experiment == 5:
+        database_cfg_file = 'config/asr_databases/TIMIT10p_ordered.conf'
         classifier_cfg_file = 'config/asr/LASFR.cfg'
         trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
     if FLAGS.type == 'asr':
@@ -107,10 +111,11 @@ def main(_):
             shutil.copyfile(feat_cfg_file,
                             os.path.join(FLAGS.expdir, 'model', 'features.cfg'))
 
-            if (database_cfg['train_mode'] == 'nonsupervised' or \
-                    database_cfg['train_mode'] == 'semisupervised'):
+            if database_cfg['train_mode'] == 'nonsupervised' or \
+                    database_cfg['train_mode'] == 'semisupervised':
                 shutil.copyfile(quantization_cfg_file,
-                                os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
+                                os.path.join(FLAGS.expdir,
+                                             'model', 'quantization.cfg'))
         shutil.copyfile(classifier_cfg_file,
                         os.path.join(FLAGS.expdir, 'model',
                                      '%s.cfg' % FLAGS.type))

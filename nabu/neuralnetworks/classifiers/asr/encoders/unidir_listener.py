@@ -2,7 +2,7 @@
 contains the listener code'''
 
 import tensorflow as tf
-import encoder
+from nabu.neuralnetworks.classifiers.asr.encoders import encoder
 from nabu.neuralnetworks.classifiers import layer
 
 class Unidir_Listener(encoder.Encoder):

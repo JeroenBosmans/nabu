@@ -24,9 +24,9 @@ def main(_):
     database_cfg = dict(parsed_database_cfg.items('database'))
 
     # check the training mode
-    if database_cfg['train_mode']=='supervised':
+    if database_cfg['train_mode'] == 'supervised':
         nonsupervised = False
-    elif database_cfg['train_mode']=='semisupervised':
+    elif database_cfg['train_mode'] == 'semisupervised':
         nonsupervised = True
     elif database_cfg['train_mode'] == 'nonsupervised':
         raise Exception('Purely nonsupervised models should be tested with \
@@ -68,7 +68,8 @@ def main(_):
         if audio_used:
             #read the quantization config file if necessary
             parsed_quant_cfg = configparser.ConfigParser()
-            parsed_quant_cfg.read(os.path.join(FLAGS.expdir, 'model', 'quantization.cfg'))
+            parsed_quant_cfg.read(os.path.join(FLAGS.expdir, 'model',
+                                               'quantization.cfg'))
             quant_cfg = dict(parsed_quant_cfg.items('features'))
 
     #create a feature reader

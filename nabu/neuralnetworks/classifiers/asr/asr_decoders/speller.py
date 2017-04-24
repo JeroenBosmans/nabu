@@ -3,7 +3,7 @@ contains the speller functionality'''
 
 from functools import partial
 import tensorflow as tf
-import asr_decoder
+from nabu.neuralnetworks.classifiers.asr.asr_decoders import asr_decoder
 
 
 class Speller(asr_decoder.AsrDecoder):

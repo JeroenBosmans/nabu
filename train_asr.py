@@ -54,10 +54,10 @@ def train_asr(clusterfile,
     decoder_cfg = dict(parsed_decoder_cfg.items('decoder'))
 
     #make distinction between three implemented different kind of training forms
-    if database_cfg['train_mode']=='supervised':
+    if database_cfg['train_mode'] == 'supervised':
         nonsupervised = False
-    elif database_cfg['train_mode']=='nonsupervised' or\
-            database_cfg['train_mode']== 'semisupervised':
+    elif database_cfg['train_mode'] == 'nonsupervised' or\
+            database_cfg['train_mode'] == 'semisupervised':
         nonsupervised = True
     else:
         raise Exception('Wrong kind of training mode')
@@ -70,16 +70,18 @@ def train_asr(clusterfile,
         elif trainer_cfg['reconstruction_features'] == 'input_features':
             audio_used = False
         else:
-            raise Exception('Unknown specification for the reconstruction features')
+            raise Exception(
+                'Unknown specification for the reconstruction features')
 
-    #read the quantization config file if nonsupervised training and samples used
+    #read the quant config file if nonsupervised training and samples used
     if nonsupervised:
         if audio_used:
             parsed_quant_cfg = configparser.ConfigParser()
-            parsed_quant_cfg.read(os.path.join(expdir, 'model', 'quantization.cfg'))
+            parsed_quant_cfg.read(os.path.join(expdir,
+                                               'model', 'quantization.cfg'))
             quant_cfg = dict(parsed_quant_cfg.items('features'))
 
-    #based on the other settings, compute and overwrite the samples_per_hlfeature
+    #based on the other settings, compute and overwrite samples_per_hlfeature
     #and unpredictable_samples in the classifier config dictionary
     if nonsupervised:
         if audio_used:
@@ -88,12 +90,14 @@ def train_asr(clusterfile,
             win_shift = float(feat_cfg['winstep'])
             samples_one_window = int(win_lenght*rate_after_quant)
             samples_one_shift = int(win_shift*rate_after_quant)
-            #### THIS IS ONLY RELEVANT WHEN USING A LISTENER WITH PYRAMIDICAL STRUCTURE
+            #### THIS IS ONLY RELEVANT WHEN USING A LISTENER WITH PYRAM STRUCT
             # and this line should be adapted otherwise
             time_compression = 2**int(nnet_cfg['listener_numlayers'])
             #store values in config dictionary
-            nnet_cfg['samples_per_hlfeature'] = samples_one_shift*time_compression
-            nnet_cfg['unpredictable_samples'] = (samples_one_window+(time_compression-1)\
+            nnet_cfg['samples_per_hlfeature'] = samples_one_shift\
+                                        *time_compression
+            nnet_cfg['unpredictable_samples'] = (samples_one_window+\
+                                    (time_compression-1)\
                         *samples_one_shift)-nnet_cfg['samples_per_hlfeature']
 
 
@@ -139,7 +143,8 @@ def train_asr(clusterfile,
     # these can be done with a second feature reader
     if nonsupervised:
         if audio_used:
-            featdir2 = os.path.join(database_cfg['train_dir'], quant_cfg['name'])
+            featdir2 = os.path.join(database_cfg['train_dir'],
+                                    quant_cfg['name'])
 
             with open(featdir2 + '/maxlength', 'r') as fid:
                 max_length_audio = int(fid.read())
@@ -162,14 +167,14 @@ def train_asr(clusterfile,
         # when doing (partly) nonsupervised extra reconstruction features needed
         if audio_used:
             dispenser = batchdispenser.AsrTextAndAudioBatchDispenser(
-                feature_reader = featreader,
+                feature_reader=featreader,
                 audio_reader=audioreader,
                 target_coder=coder,
                 size=int(trainer_cfg['batch_size']),
                 target_path=textfile)
         else:
             dispenser = batchdispenser.AsrTextAndFeatureBatchDispenser(
-                feature_reader = featreader,
+                feature_reader=featreader,
                 target_coder=coder,
                 size=int(trainer_cfg['batch_size']),
                 target_path=textfile)
@@ -232,7 +237,8 @@ def train_asr(clusterfile,
 
         val_targets = dict()
         for utt_id in val_text_targets:
-            val_targets[utt_id] = (val_text_targets[utt_id], val_rec_targets[utt_id])
+            val_targets[utt_id] = (val_text_targets[utt_id],
+                                   val_rec_targets[utt_id])
 
     else:
         if int(trainer_cfg['valid_utt']) > 0:
@@ -261,7 +267,7 @@ def train_asr(clusterfile,
 
     classifier = asr_factory.factory(
         conf=nnet_cfg,
-        output_dim=(coder.num_labels,output_dim_second_el))
+        output_dim=(coder.num_labels, output_dim_second_el))
 
     #create the callable for the decoder
     decoder = partial(
@@ -287,7 +293,7 @@ def train_asr(clusterfile,
         decoder=decoder,
         classifier=classifier,
         input_dim=input_dim,
-        reconstruction_dim = reconstruction_dim,
+        reconstruction_dim=reconstruction_dim,
         dispenser=dispenser,
         val_reader=val_reader,
         val_targets=val_targets,

@@ -2,9 +2,9 @@
 reading features and applying cmvn and splicing them'''
 
 import copy
-import ark
+from nabu.processing import ark
+from nabu.processing import readfiles
 import numpy as np
-import readfiles
 
 class FeatureReader(object):
     '''Class that can read features from a Kaldi archive and process
@@ -31,7 +31,7 @@ class FeatureReader(object):
         self.max_length = max_length
 
         # some of the information is only needed when the cvmn file is not None
-        if(cmvnfile is not None):
+        if cmvnfile is not None:
             #create a reader for the cmvn statistics
             self.reader_cmvn = ark.ArkReader(cmvnfile)
             #save the utterance to speaker mapping
@@ -52,7 +52,7 @@ class FeatureReader(object):
         (utt_id, utt_mat, looped) = self.reader.read_next_utt()
 
         #apply cmvn if this is wanted
-        if(self.reader_cmvn is not None):
+        if self.reader_cmvn is not None:
             cmvn_stats = self.reader_cmvn.read_utt_data(self.utt2spk[utt_id])
             utt_mat = apply_cmvn(utt_mat, cmvn_stats)
 
@@ -60,7 +60,7 @@ class FeatureReader(object):
 
     def get_utt_with_id(self, utt_id):
         '''
-        read the features from the archive (and normalize and splice if cmvn present)
+        read the features from archive (normalize and splice if cmvn present)
         for the utterance that is specfied with a certain id
 
         Args:
@@ -72,7 +72,7 @@ class FeatureReader(object):
         utt_mat = self.reader.read_utt_data(utt_id)
 
         #apply cmvn is this is wanted
-        if(self.reader_cmvn is not None):
+        if self.reader_cmvn is not None:
             cmvn_stats = self.reader_cmvn.read_utt_data(self.utt2spk[utt_id])
             utt_mat = apply_cmvn(utt_mat, cmvn_stats)
 

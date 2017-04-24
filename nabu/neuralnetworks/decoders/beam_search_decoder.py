@@ -4,7 +4,7 @@ contains the BeamSearchDecoder'''
 from collections import namedtuple
 import tensorflow as tf
 from tensorflow.python.util import nest
-import decoder
+from nabu.neuralnetworks.decoders import decoder
 from nabu.processing import score
 
 class BeamSearchDecoder(decoder.Decoder):
@@ -182,7 +182,7 @@ class BeamSearchDecoder(decoder.Decoder):
 
         #decode the targets
         decoded_targets = {utt:self.coder.decode(targets[utt])
-                                for utt in targets}
+                           for utt in targets}
 
         return score.cer(outputs, decoded_targets)
 

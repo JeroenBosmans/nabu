@@ -1,9 +1,9 @@
 '''@file feature_computer_factory.py
 contains the FeatureComputer factory'''
 
-import mfcc
-import fbank
-import quant_audio
+from nabu.processing.feature_computers import mfcc
+from nabu.processing.feature_computers import fbank
+from nabu.processing.feature_computers import quant_audio
 
 def factory(conf):
     '''
