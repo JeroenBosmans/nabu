@@ -156,16 +156,59 @@ def train_asr(clusterfile,
                 max_length=max_length_audio)
 
     ## create a batch dispenser, depending on which situation we're in
-    # in the normal supervised training mode, regular dispenser is needed
     if not nonsupervised:
-        dispenser = dispenser = batchdispenser.AsrTextBatchDispenser(
-            feature_reader=featreader,
-            target_coder=coder,
-            size=int(trainer_cfg['batch_size']),
-            target_path=textfile)
+    # in the normal supervised training mode, regular dispenser is needed
+        if 'las_ignoring_mode' in trainer_cfg:
+            if trainer_cfg['las_ignoring_mode'] == 'True':
+            # if we ignore unlabeled examples
+                dispenser = batchdispenser.AsrTextBatchDispenser(
+                    feature_reader=featreader,
+                    target_coder=coder,
+                    size=int(trainer_cfg['batch_size']),
+                    target_path=textfile)
+            elif trainer_cfg['las_ignoring_mode'] == 'False':
+            # if we choose to process the unlabeled examples
+                if 'fixed_ratio' in trainer_cfg:
+                    if trainer_cfg['fixed_ratio'] == 'True':
+                    # if we choose to process with batches with fixed
+                    # labeled/unlabeled ratio
+                        dispenser = \
+                            batchdispenser.AsrTextBatchDispenserAltFixRatio(
+                                feature_reader=featreader,
+                                target_coder=coder,
+                                size=int(trainer_cfg['batch_size']),
+                                target_path=textfile,
+                                percentage_unlabeled=1-float(
+                                    database_cfg['part_labeled']))
+                    elif trainer_cfg['fixed_ratio'] == 'False':
+                        # if the fixed ratio is not used
+                        dispenser = batchdispenser.AsrTextBatchDispenserAlt(
+                            feature_reader=featreader,
+                            target_coder=coder,
+                            size=int(trainer_cfg['batch_size']),
+                            target_path=textfile)
+                    else:
+                        raise Exception('wrong information in fixed_ratio var')
+                else:
+                # if fixed ratio is not specified, we choose to do without it
+                    dispenser = batchdispenser.AsrTextBatchDispenserAlt(
+                        feature_reader=featreader,
+                        target_coder=coder,
+                        size=int(trainer_cfg['batch_size']),
+                        target_path=textfile)
+            else:
+                raise Exception('wrong information in LAS_ignoring_mode var')
+        else:
+        # if no specification is made about the ignoring, ignore the unlabeled
+            dispenser = batchdispenser.AsrTextBatchDispenser(
+                feature_reader=featreader,
+                target_coder=coder,
+                size=int(trainer_cfg['batch_size']),
+                target_path=textfile)
     else:
         # when doing (partly) nonsupervised extra reconstruction features needed
         if audio_used:
+        # when the audio is the reconstruction feature
             dispenser = batchdispenser.AsrTextAndAudioBatchDispenser(
                 feature_reader=featreader,
                 audio_reader=audioreader,
@@ -173,11 +216,34 @@ def train_asr(clusterfile,
                 size=int(trainer_cfg['batch_size']),
                 target_path=textfile)
         else:
-            dispenser = batchdispenser.AsrTextAndFeatureBatchDispenser(
-                feature_reader=featreader,
-                target_coder=coder,
-                size=int(trainer_cfg['batch_size']),
-                target_path=textfile)
+        # if no audio is used, the input features are used
+            if 'fixed_ratio' in trainer_cfg:
+                if trainer_cfg['fixed_ratio'] == 'True':
+                # if specified to work with fixed labeled/unlabled ratio batches
+                    dispenser = \
+                        batchdispenser.AsrTextAndFeatBatchDispenserFixRatio(
+                            feature_reader=featreader,
+                            target_coder=coder,
+                            size=int(trainer_cfg['batch_size']),
+                            target_path=textfile,
+                            percentage_unlabeled=1-float(
+                                database_cfg['part_labeled']))
+                elif trainer_cfg['fixed_ratio'] == 'False':
+                # if specified to not use the fixed ratio
+                    dispenser = batchdispenser.AsrTextAndFeatBatchDispenser(
+                        feature_reader=featreader,
+                        target_coder=coder,
+                        size=int(trainer_cfg['batch_size']),
+                        target_path=textfile)
+                else:
+                    raise Exception('wrong information in fixed_ratio var')
+            else:
+            # without specification, suppose no fixed ratio batches
+                dispenser = batchdispenser.AsrTextAndFeatBatchDispenser(
+                    feature_reader=featreader,
+                    target_coder=coder,
+                    size=int(trainer_cfg['batch_size']),
+                    target_path=textfile)
 
 
     # read validation data. If there are text targets, they are only important

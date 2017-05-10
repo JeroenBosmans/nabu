@@ -58,6 +58,19 @@ class Trainer(object):
             dispenser.max_target_length
         self.max_input_length = dispenser.max_input_length
 
+        # save the boolean that holds if doing learning rate adaptation
+        if 'learning_rate_adaptation' in conf:
+            if conf['learning_rate_adaptation'] == 'True':
+                self.learning_rate_adaptation = True
+            elif conf['learning_rate_adaptation'] == 'False':
+                self.learning_rate_adaptation = False
+            else:
+                raise Exception('wrong kind of info in \
+                    learning_rate_adaptation')
+        else:
+        # if not specified, assum learning rate adaptation is not necessary
+            self.learning_rate_adaptation = False
+
         #create the graph
         self.graph = tf.Graph()
 
@@ -233,6 +246,28 @@ class Trainer(object):
                     self.halve_learningrate_op = learning_rate_fact.assign(
                         learning_rate_fact/2).op
 
+                    #factor to scale the learning rate according to how many
+                    # of the elements in a batch are equal to zero, if we are
+                    # using scaled learning rate
+                    if self.learning_rate_adaptation:
+                        empty_factor = tf.get_variable(
+                            name='empty_targets_factor',
+                            shape=[],
+                            initializer=tf.constant_initializer(1.0),
+                            trainable=False)
+
+                        empty_targets = tf.equal(self.target_seq_length[0], 0)
+                        ones = tf.ones(dispenser.size)
+                        zeros = tf.zeros(dispenser.size)
+                        binary = tf.where(empty_targets, zeros, ones)
+                        how_many_not_empty = tf.reduce_sum(binary)
+                        empty_factor_new = how_many_not_empty/dispenser.size
+
+                        self.update_emptyfactor_op = empty_factor.assign(
+                            empty_factor_new).op
+                    else:
+                        empty_factor = 1
+
                     #compute the learning rate with exponential decay and scale
                     #with the learning rate factor
                     self.learning_rate = (tf.train.exponential_decay(
@@ -240,11 +275,33 @@ class Trainer(object):
                         global_step=self.global_step,
                         decay_steps=self.num_steps,
                         decay_rate=float(conf['learning_rate_decay']))
-                                          * learning_rate_fact)
+                                          * learning_rate_fact * empty_factor)
 
                     #create the optimizer
-                    optimizer = tf.train.GradientDescentOptimizer(
-                        self.learning_rate)
+                    if 'optimizer' in conf:
+                    # we can explicitly specify to use gradient descent
+                        if conf['optimizer'] == 'gradient_descent':
+                            optimizer = tf.train.GradientDescentOptimizer(
+                                self.learning_rate)
+                        elif conf['optimizer'] == 'adam':
+                        # or to use adam
+                            if 'beta1' in conf and 'beta2' in conf:
+                                # in which case we can also adapt the params
+                                optimizer = tf.train.AdamOptimizer(
+                                    learning_rate=self.learning_rate,
+                                    beta1=float(conf['beta1']),
+                                    beta2=float(conf['beta2'])
+                                )
+                            else:
+                            # if params not specified, use default
+                                optimizer = tf.train.AdamOptimizer(
+                                    learning_rate=self.learning_rate)
+                        else:
+                            raise Exception('The trainer ' + conf['optimizer'] \
+                                + ' is not defined.')
+                    else:
+                        # default is adam with standard params
+                        optimizer = tf.train.AdamOptimizer(self.learning_rate)
 
                     #create an optimizer that aggregates gradients
                     if int(conf['numbatches_to_aggregate']) > 0:
@@ -435,6 +492,17 @@ class Trainer(object):
         padded_targets1 = np.array(pad(targets1, self.max_target_length1))
         padded_targets2 = np.array(pad(targets2, self.max_target_length2))
 
+        # first do an update of the emptyness factor
+        if self.learning_rate_adaptation:
+            _ = sess.run(
+                fetches=[self.update_emptyfactor_op],
+                feed_dict={self.inputs:padded_inputs,
+                           self.targets[0]:padded_targets1,
+                           self.targets[1]:padded_targets2,
+                           self.input_seq_length:input_seq_length,
+                           self.target_seq_length[0]:target_seq_length1,
+                           self.target_seq_length[1]:target_seq_length2})
+
         _, loss, lr = sess.run(
             fetches=[self.update_op,
                      self.loss,
@@ -477,9 +545,12 @@ class Trainer(object):
 
             val_loss = self.decoder.score(outputs, val_text_targets)
 
-        else:
+        elif self.conf['validation_mode'] == 'loss':
             val_loss = self.compute_val_loss(self.val_reader, self.val_targets,
                                              sess)
+        else:
+            raise Exception(self.conf['validation_mode']+' is not a correct\
+                choice for the validation mode')
 
         print 'validation loss: %f' % val_loss
 
@@ -525,10 +596,12 @@ class Trainer(object):
 
             num_elements = len(inputs)
 
-
             #add empty elements to the inputs to get a full batch
             feat_dim = inputs[0].shape[1]
-            rec_dim = labels[0][1].shape[1]
+            if labels[0][1] is not None:
+                rec_dim = labels[0][1].shape[1]
+            else:
+                rec_dim = 1
             inputs += [np.zeros([0, feat_dim])]*(
                 self.dispenser.size-len(inputs))
             labels += [np.zeros([0]), np.zeros([0, rec_dim])]*(
@@ -537,7 +610,8 @@ class Trainer(object):
             #get the sequence length
             input_seq_length = [inp.shape[0] for inp in inputs]
             label_seq_length1 = [lab[0].shape[0] for lab in labels]
-            label_seq_length2 = [lab[1].shape[0] for lab in labels]
+            label_seq_length2 = [lab[1].shape[0] if lab[1] is not None \
+                else 0 for lab in labels]
             #pad and put in a tensor
             input_tensor = np.array([np.append(
                 inp, np.zeros([self.max_input_length-inp.shape[0],
@@ -545,10 +619,13 @@ class Trainer(object):
             label_tensor1 = np.array([np.append(
                 lab[0], np.zeros([self.max_target_length1-lab[0].shape[0]]), 0)
                                       for lab in labels])
-            label_tensor2 = np.array([np.append(
-                lab[1], np.zeros([self.max_target_length2-lab[1].shape[0],
-                                  lab[1].shape[1]]), 0)
-                                      for lab in labels])
+            if labels[0][1] is not None:
+                label_tensor2 = np.array([np.append(
+                    lab[1], np.zeros([self.max_target_length2-lab[1].shape[0],
+                                      lab[1].shape[1]]), 0)
+                                          for lab in labels])
+            else:
+                label_tensor2 = np.zeros([self.dispenser.size, 1, 1])
             print 'Doing validation, step %d/%d' %(step, total_steps)
 
             loss = sess.run(

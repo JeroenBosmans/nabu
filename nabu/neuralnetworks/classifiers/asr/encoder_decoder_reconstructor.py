@@ -96,8 +96,16 @@ class EncoderDecoderReconstructor(classifier.Classifier):
             reconstructor_inputs=targets[1],
             is_training=is_training)
 
+        # adapt the sequence length of the logits in the correct way
+        # plus one if the target length was not zero because and eos label will
+        # be added, remain zero when the target length was also zero.
+        empty_targets = tf.equal(target_seq_length[0], 0)
+        zeros = tf.zeros([target_seq_length[0].get_shape()[0]], dtype=tf.int32)
+        logit_seq_length1 = tf.where(empty_targets, zeros,
+                                     target_seq_length[0]+1)
+
         #assemble two kind of logits and lengths in tuples
         logits = (text_logits, audio_logits)
-        logits_lengths = (target_seq_length[0]+1, target_seq_length[1])
+        logits_lengths = (logit_seq_length1, target_seq_length[1])
 
         return logits, logits_lengths

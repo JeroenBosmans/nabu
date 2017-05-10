@@ -43,7 +43,21 @@ class CrossEntropyTrainer(trainer.Trainer):
             targets = targets[0]
             target_seq_length = target_seq_length[0]
 
-            loss = ops.cross_entropy_integers_logits_with_appending_eos(
-                targets, logits, logit_seq_length, target_seq_length)
+            if 'old_method_unlabeled' in self.conf:
+                if self.conf['old_method_unlabeled'] == 'True':
+                    #if specified we can use old non-working method for research
+                    old_method = True
+                else:
+                # but by default use new one of course
+                    old_method = False
+            else:
+                old_method = False
+
+            if old_method:
+                loss = ops.old_cross_entropy_integers_logits_with_appending_eos(
+                    targets, logits, logit_seq_length, target_seq_length)
+            else:
+                loss = ops.cross_entropy_integers_logits_with_appending_eos(
+                    targets, logits, logit_seq_length, target_seq_length)
 
         return loss

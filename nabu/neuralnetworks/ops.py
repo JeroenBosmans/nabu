@@ -194,7 +194,7 @@ def nonseq2seq(tensor, seq_length, length, name=None):
 
 
 def cross_entropy_integers_logits(targets, logits, logit_seq_length,
-                 target_seq_length):
+                                  target_seq_length):
     '''
     Compute the loss
 
@@ -203,12 +203,13 @@ def cross_entropy_integers_logits(targets, logits, logit_seq_length,
     targets.
 
     Args:
-        targets: a tensor of integer targets in a [batch_size x max_length] tensor
+        targets: a tensor of integer targets in a [batch_size x max_length]
+            tensor
         logits: a tensor of logits in a [batch_size x max_length x dim] tensor
-        logit_seq_length: the length of all the logit sequences as a [batch_size]
-                        tensor
-        target_seq_length: the length of all the target sequences as a [batch_size]
-                        tensor
+        logit_seq_length: the length of all the logit sequences as a
+            [batch_size] tensor
+        target_seq_length: the length of all the target sequences as a
+            [batch_size] tensor
 
     Returns:
         a scalar value containing the loss
@@ -223,7 +224,7 @@ def cross_entropy_integers_logits(targets, logits, logit_seq_length,
             split_targets[i] = target[:target_seq_length[i]]
 
         #concatenate the targets
-        nonseq_targets = tf.concat(split_targets,0)
+        nonseq_targets = tf.concat(split_targets, 0)
 
         #convert the logits to non sequential data
         nonseq_logits = seq2nonseq(logits, logit_seq_length)
@@ -239,7 +240,8 @@ def cross_entropy_integers_logits(targets, logits, logit_seq_length,
     return loss
 
 def cross_entropy_integers_logits_with_appending_eos(targets, logits,
-            logit_seq_length, target_seq_length):
+                                                     logit_seq_length,
+                                                     target_seq_length):
     '''
     Compute the loss
 
@@ -249,12 +251,13 @@ def cross_entropy_integers_logits_with_appending_eos(targets, logits,
     where the fact that the targets might be empty is taken in consideration
 
     Args:
-        targets: a tensor of integer targets in a [batch_size x max_length] tensor
+        targets: a tensor of integer targets in a [batch_size x max_length]
+            tensor
         logits: a tensor of logits in a [batch_size x max_length x dim] tensor
-        logit_seq_length: the length of all the logit sequences as a [batch_size]
-                        tensor
-        target_seq_length: the length of all the target sequences as a [batch_size]
-                        tensor
+        logit_seq_length: the length of all the logit sequences as a
+            [batch_size] tensor
+        target_seq_length: the length of all the target sequences as a
+            [batch_size] tensor
 
     Returns:
         a scalar value containing the loss
@@ -267,6 +270,97 @@ def cross_entropy_integers_logits_with_appending_eos(targets, logits,
 
         #put all the targets on top of each other
         split_targets = tf.unstack(targets)
+
+        for i, target in enumerate(split_targets):
+            #only use the real data
+            split_targets[i] = target[:target_seq_length[i]]
+
+
+            #append an end of sequence label to the targets
+            split_targets[i] = tf.concat(
+                [split_targets[i], [output_dim-1]], 0)
+
+        # create new target lenghts, +1 when there was text and now an extra
+        # eos label, just remain 0 when there was no text
+        target_lengths_a = target_seq_length
+        target_lengths_b = target_seq_length + 1
+
+        allzerobool = tf.equal(tf.reduce_sum(target_seq_length), 0)
+
+        target_seq_length_new = tf.where(tf.equal(target_seq_length, 0),
+                                         target_lengths_a,
+                                         target_lengths_b)
+
+        # split with the new target seq length such that the examples where no
+        # targets were available once again lose the added eos label
+        for i, target in enumerate(split_targets):
+            split_targets[i] = target[:target_seq_length_new[i]]
+
+        #concatenate the targets
+        nonseq_targets = tf.concat(split_targets, 0)
+
+        #convert the logits to non sequential data
+        nonseq_logits = seq2nonseq(logits, logit_seq_length)
+
+        #one hot encode the targets
+        #pylint: disable=E1101
+        nonseq_targets = tf.one_hot(nonseq_targets, logits.get_shape()[2])
+
+        #compute the cross-enthropy loss in the standard case
+        def loss_normal():
+            ''' function to calculate the loss in the normal case'''
+            return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                logits=nonseq_logits, labels=nonseq_targets))
+        # in special all zero case the loss should be zero
+        def loss_all_zero():
+            ''' function to calculate the loss in the case of an all empty batch
+            '''
+            return tf.zeros(1)
+
+        # choose between the two cases
+        loss = tf.cond(allzerobool, loss_all_zero, loss_normal)
+
+    return loss
+
+def old_cross_entropy_integers_logits_with_appending_eos(targets, logits,
+                                                         logit_seq_length,
+                                                         target_seq_length):
+    '''
+    Compute the loss
+
+    This operation can be used to compute the cross entropy between targets that
+    can be represented as integers and logits that respresent logits for these
+    targets where the targets still need to be augmented with a eos label and
+    where the fact that the targets might be empty is taken in consideration
+
+    Args:
+        targets: a tensor of integer targets in a [batch_size x max_length]
+            tensor
+        logits: a tensor of logits in a [batch_size x max_length x dim] tensor
+        logit_seq_length: the length of all the logit sequences as a
+            [batch_size] tensor
+        target_seq_length: the length of all the target sequences as a
+            [batch_size] tensor
+
+    Returns:
+        a scalar value containing the loss
+    '''
+
+    with tf.name_scope('cross_entropy_loss'):
+
+        # get the output dimension
+        output_dim = int(logits.get_shape()[2])
+
+        # revise to the old form of the logits (1 when target is 0)
+        logit_lengths_a = logit_seq_length
+        logit_lengths_b = logit_seq_length + 1
+
+        logit_seq_length_new = tf.where(tf.equal(logit_seq_length, 0),
+                                        logit_lengths_b,
+                                        logit_lengths_a)
+
+        #put all the targets on top of each other
+        split_targets = tf.unstack(targets)
         for i, target in enumerate(split_targets):
             #only use the real data
             split_targets[i] = target[:target_seq_length[i]]
@@ -274,19 +368,20 @@ def cross_entropy_integers_logits_with_appending_eos(targets, logits,
             #append an end of sequence label for the targets where text was
             #available, and a -1 when there was no text available
             #This second thing ensures the loss to be zero in this case.
-            empty_target = tf.equal(target_seq_length[i],0)
+            empty_target = tf.equal(target_seq_length[i], 0)
             target_appended_eos = tf.concat(
-                            [split_targets[i], [output_dim-1]], 0)
+                [split_targets[i], [output_dim-1]], 0)
             target_appended_zero = tf.concat(
-                            [split_targets[i], [-1]], 0)
+                [split_targets[i], [-1]], 0)
             split_targets[i] = tf.where(empty_target,
-                            target_appended_zero, target_appended_eos)
+                                        target_appended_zero,
+                                        target_appended_eos)
 
         #concatenate the targets
-        nonseq_targets = tf.concat(split_targets,0)
+        nonseq_targets = tf.concat(split_targets, 0)
 
         #convert the logits to non sequential data
-        nonseq_logits = seq2nonseq(logits, logit_seq_length)
+        nonseq_logits = seq2nonseq(logits, logit_seq_length_new)
 
         #one hot encode the targets
         #pylint: disable=E1101
@@ -323,21 +418,9 @@ def mse(targets, approx, lengths):
         errors_list = tf.unstack(errors_squared)
         total_loss = tf.zeros([])
         for i, error in enumerate(errors_list):
-            error = error[:lengths[i],:]
-            error = tf.reduce_sum(error)/tf.cast((lengths[i]*dim), dtype=tf.float32)
+            error = error[:lengths[i], :]
+            error = tf.reduce_sum(error)/tf.cast((lengths[i]*dim),
+                                                 dtype=tf.float32)
             total_loss = total_loss + error
 
         return total_loss
-
-def append_eos_targets(targets, output_dim):
-    '''
-    A function to append an end of sequence targets to a tensor of targets.
-
-    Args:
-        targets: a [batch_size x max_length] of integer targets
-        output_dim: the output dimension of the corresponding logits to know
-                what the eos symbol should be
-
-    Returns:
-        the targets added with an eos label
-    '''

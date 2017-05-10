@@ -35,11 +35,11 @@ def main(_):
     if comp == 0:
         computing_cfg_file = 'config/computing/non_distributed.cfg'
     elif comp == 1:
-        computing_cfg_file = 'config/computing/condor_local.cfg'
+        computing_cfg_file = 'config/computing/condor_non_distributed.cfg'
     else:
         raise Exception('Wrong kind of computation mode set in run_train')
     if experiment == 0:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT25p.conf'
         classifier_cfg_file = 'config/asr/LAS.cfg'
         trainer_cfg_file = 'config/trainer/cross_entropy_text.cfg'
     elif experiment == 1:
@@ -55,11 +55,7 @@ def main(_):
         classifier_cfg_file = 'config/asr/LASAR.cfg'
         trainer_cfg_file = 'config/trainer/joint_audio_text.cfg'
     elif experiment == 4:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
-        classifier_cfg_file = 'config/asr/LASFR.cfg'
-        trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
-    elif experiment == 5:
-        database_cfg_file = 'config/asr_databases/TIMIT10p_ordered.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT50p.conf'
         classifier_cfg_file = 'config/asr/LASFR.cfg'
         trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
     if FLAGS.type == 'asr':

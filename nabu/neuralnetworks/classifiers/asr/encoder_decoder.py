@@ -79,4 +79,12 @@ class EncoderDecoder(classifier.Classifier):
             first_step=True,
             is_training=is_training)
 
-        return (logits, None), (target_seq_length[0] + 1, None)
+        # adapt the sequence length of the logits in the correct way
+        # plus one if the target length was not zero because and eos label will
+        # be added, remain zero when the target length was also zero.
+        empty_targets = tf.equal(target_seq_length[0], 0)
+        zeros = tf.zeros([target_seq_length[0].get_shape()[0]], dtype=tf.int32)
+        logit_seq_length = tf.where(empty_targets, zeros,
+                                    target_seq_length[0]+1)
+
+        return (logits, None), (logit_seq_length, None)

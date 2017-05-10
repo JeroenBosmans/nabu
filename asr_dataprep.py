@@ -38,8 +38,8 @@ if prepare_audio:
     audiostore_cfg = dict(audiostore_cfg.items('features'))
 
 # read the percentage of the labels to keep if that is specified
-if 'part_to_keep' in database_cfg:
-    percentage_to_keep = float(database_cfg['part_to_keep'])
+if 'part_labeled' in database_cfg:
+    percentage_to_keep = float(database_cfg['part_labeled'])
 else:
     percentage_to_keep = 1.0
 
@@ -109,20 +109,31 @@ print '------- normalizing training targets -----------'
 sourcefile = database_cfg['traintext']
 target_fid = open(os.path.join(database_cfg['train_dir'], 'targets'), 'w')
 
+# how many examples are available
+num_examples = sum(1 for line in open(sourcefile))
+
+# shuffle an array of 0's and zeros to decide which labels to keep
+labels_to_keep = int(percentage_to_keep * num_examples)
+labels_to_delete = num_examples - labels_to_keep
+decider = [0]*labels_to_delete + [1]*labels_to_keep
+random.shuffle(decider)
+
 #read the textfile line by line, normalize and write in target file
 with open(sourcefile) as fid:
+    counter = 0
     for line in fid.readlines():
         splitline = line.strip().split(' ')
         utt_id = splitline[0]
         trans = ' '.join(splitline[1:])
         normalized = normalizer(trans)
 
-        #write the result with a certain prob to simulate semi labeled datasets
-        randomnbr = random.random()
-        if percentage_to_keep >= randomnbr:
+        #write the result when the decider has a 1 for this entry
+        if decider[counter] == 1:
             target_fid.write('%s %s\n' % (utt_id, normalized))
         else:
             target_fid.write('%s %s\n' % (utt_id, ''))
+
+        counter = counter+1
 
 #store the alphabet
 with open(os.path.join(database_cfg['train_dir'], 'alphabet'), 'w') as fid:
