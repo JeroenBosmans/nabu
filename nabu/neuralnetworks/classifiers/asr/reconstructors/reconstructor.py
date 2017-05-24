@@ -7,7 +7,7 @@ import tensorflow as tf
 class Reconstructor(object):
     '''a general audio reconstructor object
 
-    converts the high level features into a reconstruction of the audio signal'''
+    converts the high level features into reconstruction of the audio signal'''
 
     __metaclass__ = ABCMeta
 
@@ -51,7 +51,7 @@ class Reconstructor(object):
         with tf.variable_scope(self.scope):
 
             reconstructed = self.reconstruct(hlfeat, reconstructor_inputs,
-                                                is_training)
+                                             is_training)
 
         self.scope.reuse_variables()
 

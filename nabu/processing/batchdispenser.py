@@ -736,6 +736,213 @@ class AsrTextAndAudioBatchDispenser(BatchDispenser):
 
         self.feature_reader.pos = pos
 
+
+class AsrTextAndAudioBatchDispenserFixRatio(BatchDispenser):
+    '''a batch dispenser, used for ASR training, when working with
+    (partly) non-supervised data and audio samples'''
+
+    def __init__(self, feature_reader, audio_reader, target_coder, size,
+                 target_path, percentage_unlabeled):
+        '''
+        batchDispenser constructor
+
+        Args:
+            feature_reader: Kaldi ark-file feature reader instance.
+            audio_reader: Kaldi ark-file feature reader for the audio samples
+            target_coder: a TargetCoder object to encode and decode the target
+                sequences
+            size: Specifies how many utterances should be contained
+                  in each batch.
+            target_path: path to the file containing the targets
+        '''
+
+        #store the feature reader
+        self.feature_reader = feature_reader
+
+        #store the audio reader
+        self.audio_reader = audio_reader
+
+        #save the target coder
+        self.target_coder = target_coder
+
+        #get a dictionary connecting training utterances and targets.
+        self.target_dict = {}
+
+        #set up the data lists.
+        self.buffer_lab = []
+        self.buffer_unlab = []
+
+        #save the percentage we want to be unlabeled
+        self.percentage_unlabeled = percentage_unlabeled
+
+        with open(target_path, 'r') as fid:
+            for line in fid:
+                splitline = line.strip().split(' ')
+                self.target_dict[splitline[0]] = ' '.join(splitline[1:])
+
+        super(AsrTextAndAudioBatchDispenserFixRatio, self).__init__(size)
+
+    def get_batch(self, pos=None):
+        '''
+        Get a batch of features and targets.
+
+        Args:
+            pos: position in the reader, if None will remain unchanged
+
+        Returns:
+            A pair containing:
+                - The features: a list of feature matrices
+                - The targets: a list of target tupples(!), where the second
+                    element of each tupple can be used for varying reasons
+                        example: quantized audio samples
+        '''
+
+        #set up the data lists.
+        batch_inputs = []
+        batch_targets = []
+
+        #calculate the number of examples we want to be unlabeled
+        nbr_unlabeled = int(self.size*self.percentage_unlabeled)
+        nbr_labeled = self.size - nbr_unlabeled
+
+        #hold two counters
+        counter_unlab = 0
+        counter_lab = 0
+
+        if pos is not None:
+            self.pos = pos
+
+        while len(batch_inputs) < self.size:
+            # if we still need unlabeled examples, take out buffer if possible
+            if counter_unlab < nbr_unlabeled and len(self.buffer_unlab) > 0:
+                new_pair = self.buffer_unlab.pop(0)
+                counter_unlab = counter_unlab + 1
+
+            # if we still need labeled examples, take out buffer if possible
+            elif counter_lab < nbr_labeled and len(self.buffer_lab) > 0:
+                new_pair = self.buffer_lab.pop(0)
+                counter_lab = counter_lab + 1
+
+            # if in none above cases, get a new candidate pair out of data
+            #read the next pair
+            else:
+                inputs_cand, targets_cand = self.get_pair()
+
+                if targets_cand[0] is not None:
+                    # if this candidate is unlabeled
+                    if len(targets_cand[0]) == 0:
+                        # add to batch when still needed
+                        if counter_unlab < nbr_unlabeled:
+                            new_pair = (inputs_cand, targets_cand)
+                            counter_unlab = counter_unlab + 1
+                        # if not needed, store in buffer
+                        else:
+                            new_pair = None
+                            self.buffer_unlab.append(
+                                (inputs_cand, targets_cand))
+                    # if this candidate is labeled
+                    else:
+                        # add to batch when still needed
+                        if counter_lab < nbr_labeled:
+                            new_pair = (inputs_cand, targets_cand)
+                            counter_lab = counter_lab + 1
+                        # if not needed, store in buffer
+                        else:
+                            new_pair = None
+                            self.buffer_lab.append((inputs_cand, targets_cand))
+                else:
+                    new_pair = None
+
+            # if a new pair was found, add it to the batch_inputs
+            if new_pair is not None:
+                batch_inputs.append(new_pair[0])
+                batch_targets.append(new_pair[1])
+        return batch_inputs, batch_targets
+
+    def split(self, num_utt):
+        '''take a number of utterances from the batchdispenser to make a new one
+
+        Args:
+            num_utt: the number of utterances in the new batchdispenser
+
+        Returns:
+            a batch dispenser with the requested number of utterances'''
+
+        #create a copy of self
+        dispenser = copy.deepcopy(self)
+
+        #split of a part of the feature reader
+        dispenser.feature_reader = self.feature_reader.split(num_utt)
+
+        #get a list of keys in the featutre readers
+        dispenser_ids = dispenser.feature_reader.reader.scp_data.keys()
+        self_ids = self.feature_reader.reader.scp_data.keys()
+
+        #split the target dicts
+        dispenser.target_dict = {key: dispenser.target_dict[key] for key in
+                                 dispenser_ids}
+        self.target_dict = {key: self.target_dict[key] for key in self_ids}
+
+        return dispenser
+
+    def get_pair(self):
+        '''get the next input-target pair'''
+
+        utt_id, inputs, _ = self.feature_reader.get_utt()
+
+        if utt_id in self.target_dict:
+            # normally the unlabeled data is simply encoded with '' as targets
+            text_targets = self.target_coder.encode(self.target_dict[utt_id])
+        else:
+            #When something wrong, simply take empty string as target
+            text_targets = self.target_coder.encode('')
+
+        audio_samples = self.audio_reader.get_utt_with_id(utt_id)
+
+        # the targets should be a pair of the real targets and the audio samples
+        targets = (text_targets, audio_samples)
+
+        return inputs, targets
+
+    @property
+    def num_utt(self):
+        '''The number of utterances in the given data'''
+
+        return len(self.target_dict)
+
+    @property
+    def num_labels(self):
+        '''the number of output labels'''
+
+        return self.target_coder.num_labels
+
+    @property
+    def max_input_length(self):
+        '''the maximal sequence length of the features'''
+
+        return self.feature_reader.max_length
+
+    @property
+    def max_target_length(self):
+        '''the maximal length of the targets'''
+        part1 = max([len(targets.split(' '))
+                     for targets in self.target_dict.values()])
+        part2 = self.audio_reader.max_length
+        return(part1, part2)
+
+
+    @property
+    def pos(self):
+        '''the current position in the data'''
+
+        return self.feature_reader.pos
+
+    @pos.setter
+    def pos(self, pos):
+        '''setter for the current position in the data'''
+
+        self.feature_reader.pos = pos
+
 class AsrTextAndFeatBatchDispenser(BatchDispenser):
     '''a batch dispenser, used for ASR training, when working with
     (partly) non-supervised data'''

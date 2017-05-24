@@ -209,12 +209,36 @@ def train_asr(clusterfile,
         # when doing (partly) nonsupervised extra reconstruction features needed
         if audio_used:
         # when the audio is the reconstruction feature
-            dispenser = batchdispenser.AsrTextAndAudioBatchDispenser(
-                feature_reader=featreader,
-                audio_reader=audioreader,
-                target_coder=coder,
-                size=int(trainer_cfg['batch_size']),
-                target_path=textfile)
+            if 'fixed_ratio' in trainer_cfg:
+                if trainer_cfg['fixed_ratio'] == 'True':
+                    # if specified to work with fixed lab/unlab ratio batches
+                    dispenser = \
+                        batchdispenser.AsrTextAndAudioBatchDispenserFixRatio(
+                            feature_reader=featreader,
+                            audio_reader=audioreader,
+                            target_coder=coder,
+                            size=int(trainer_cfg['batch_size']),
+                            target_path=textfile,
+                            percentage_unlabeled=1-float(
+                                database_cfg['part_labeled']))
+                elif trainer_cfg['fixed_ratio'] == 'False':
+                # if specified to not use the fixed ratio
+                    dispenser = batchdispenser.AsrTextAndAudioBatchDispenser(
+                        feature_reader=featreader,
+                        audio_reader=audioreader,
+                        target_coder=coder,
+                        size=int(trainer_cfg['batch_size']),
+                        target_path=textfile)
+                else:
+                    raise Exception('wrong information in fixed_ratio var')
+            else:
+            # without specification, suppose no fixed ratio batches
+                dispenser = batchdispenser.AsrTextAndAudioBatchDispenser(
+                    feature_reader=featreader,
+                    audio_reader=audioreader,
+                    target_coder=coder,
+                    size=int(trainer_cfg['batch_size']),
+                    target_path=textfile)
         else:
         # if no audio is used, the input features are used
             if 'fixed_ratio' in trainer_cfg:

@@ -28,7 +28,7 @@ def main(_):
     # 0 for nondistr, 1 for condor local
     comp = 1
     # 0 for LAS, 1 for LAR, 2 for LFR, 3 for LASAR, 4 for LASFR
-    experiment = 0
+    experiment = 4
 
 
     #pointers to the config files
@@ -39,7 +39,7 @@ def main(_):
     else:
         raise Exception('Wrong kind of computation mode set in run_train')
     if experiment == 0:
-        database_cfg_file = 'config/asr_databases/TIMIT25p.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
         classifier_cfg_file = 'config/asr/LAS.cfg'
         trainer_cfg_file = 'config/trainer/cross_entropy_text.cfg'
     elif experiment == 1:
@@ -47,16 +47,16 @@ def main(_):
         classifier_cfg_file = 'config/asr/LAR.cfg'
         trainer_cfg_file = 'config/trainer/cross_entropy_audio.cfg'
     elif experiment == 2:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT1.conf'
         classifier_cfg_file = 'config/asr/LFR.cfg'
         trainer_cfg_file = 'config/trainer/cost_features_rec.cfg'
     elif experiment == 3:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        database_cfg_file = 'config/asr_databases/TIMIT50p.conf'
         classifier_cfg_file = 'config/asr/LASAR.cfg'
         trainer_cfg_file = 'config/trainer/joint_audio_text.cfg'
     elif experiment == 4:
-        database_cfg_file = 'config/asr_databases/TIMIT50p.conf'
-        classifier_cfg_file = 'config/asr/LASFR.cfg'
+        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
+        classifier_cfg_file = 'config/asr/LASFR_unidir.cfg'
         trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
     if FLAGS.type == 'asr':
         feat_cfg_file = 'config/features/fbank.cfg'
