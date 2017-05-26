@@ -55,8 +55,8 @@ def main(_):
         classifier_cfg_file = 'config/asr/LASAR.cfg'
         trainer_cfg_file = 'config/trainer/joint_audio_text.cfg'
     elif experiment == 4:
-        database_cfg_file = 'config/asr_databases/TIMIT10p.conf'
-        classifier_cfg_file = 'config/asr/LASFR_unidir.cfg'
+        database_cfg_file = 'config/asr_databases/TIMIT25p.conf'
+        classifier_cfg_file = 'config/asr/LASFR.cfg'
         trainer_cfg_file = 'config/trainer/joint_features_text.cfg'
     if FLAGS.type == 'asr':
         feat_cfg_file = 'config/features/fbank.cfg'

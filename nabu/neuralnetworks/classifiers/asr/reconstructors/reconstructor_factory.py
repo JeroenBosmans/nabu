@@ -3,7 +3,7 @@ contains the reconstructor factory'''
 
 from . import lstm_feature_reconstructor, audio_lstm_reconstructor, \
     audio_lstm_reconstructor_expanded, lstm_feature_reconstructor_expanded, \
-    lstm_feature_reconstructor0, lstm_feature_reconstructor00
+    lstm_feature_reconstructor_bidir, lstm_feature_reconstructor_bidir2
 
 def factory(conf, output_dim):
     '''create a reconstructor
@@ -18,10 +18,10 @@ def factory(conf, output_dim):
         return lstm_feature_reconstructor.LstmFeatureReconstructor(
             conf, output_dim)
     elif conf['reconstructor'] == 'lstm_feature_reconstructor_bidir':
-        return lstm_feature_reconstructor0.LstmFeatureReconstructor(
+        return lstm_feature_reconstructor_bidir.LstmFeatureReconstructor(
             conf, output_dim)
     elif conf['reconstructor'] == 'lstm_feature_reconstructor_bidir2':
-        return lstm_feature_reconstructor00.LstmFeatureReconstructor(
+        return lstm_feature_reconstructor_bidir2.LstmFeatureReconstructor(
             conf, output_dim)
     elif conf['reconstructor'] == 'lstm_feature_reconstructor_expanded':
         return lstm_feature_reconstructor_expanded.LstmFeatureReconstructor(

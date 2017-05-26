@@ -16,6 +16,9 @@ class LstmFeatureReconstructor(reconstructor.Reconstructor):
         RNN that has been given one hlf as initial state. It predicts the input
         features that were used to construct the next hlf.
 
+        ADAPTED VERSION THAT IS MORE SUITABLE FOR THE CASE OF A BIDIRECTIONAL
+        LISTENER.
+
         Args:
             hlfeat: the high level features that came out of the listener
                 [batch_size x max_hl_seq_length x feat_dim]
